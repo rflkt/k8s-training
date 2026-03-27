@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K8s Training App</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+            background: #0d1117;
+            color: #c9d1d9;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 640px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #58a6ff;
+            margin-bottom: 24px;
+            font-size: 1.8rem;
+        }
+
+        .card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .card h2 {
+            color: #58a6ff;
+            font-size: 1rem;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 8px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 0.9rem;
+        }
+
+        .info-row .label { color: #8b949e; }
+        .info-row .value { color: #c9d1d9; font-family: monospace; }
+
+        .error { color: #f85149; font-size: 0.85rem; }
+        .success { color: #3fb950; font-size: 0.85rem; }
+
+        button {
+            background: #21262d;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.15s;
+        }
+
+        button:hover { background: #30363d; }
+        button.danger { border-color: #f85149; color: #f85149; }
+        button.danger:hover { background: #f8514922; }
+        button.primary { border-color: #58a6ff; color: #58a6ff; }
+        button.primary:hover { background: #58a6ff22; }
+
+        input[type="text"] {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            flex: 1;
+        }
+
+        input[type="text"]::placeholder { color: #484f58; }
+
+        .add-form {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .item-list { list-style: none; }
+
+        .item-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #21262d;
+            font-size: 0.9rem;
+        }
+
+        .item-list li:last-child { border-bottom: none; }
+
+        .item-id {
+            color: #484f58;
+            font-size: 0.75rem;
+            margin-left: 8px;
+        }
+
+        .secret-value {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin-top: 8px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            word-break: break-all;
+        }
+
+        .refresh-note {
+            text-align: center;
+            color: #484f58;
+            font-size: 0.75rem;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>K8s Training App</h1>
+
+        <!-- API Status -->
+        <div class="card">
+            <h2>API Status</h2>
+            <div id="api-status">Loading...</div>
+            <p class="refresh-note">Auto-refreshes every 5s (watch hostname change across pods)</p>
+        </div>
+
+        <!-- App Info -->
+        <div class="card">
+            <h2>App Info</h2>
+            <div id="app-info">Loading...</div>
+        </div>
+
+        <!-- Items CRUD -->
+        <div class="card">
+            <h2>Items</h2>
+            <div class="add-form">
+                <input type="text" id="item-name" placeholder="Item name..." />
+                <button class="primary" onclick="addItem()">Add</button>
+            </div>
+            <ul class="item-list" id="item-list"></ul>
+            <div id="items-status"></div>
+        </div>
+
+        <!-- Secret Test -->
+        <div class="card">
+            <h2>Secret Test</h2>
+            <button onclick="testSecret()">Test Secret Endpoint</button>
+            <div id="secret-result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API = '/api';
+
+        // Fetch and display the main API response
+        async function fetchStatus() {
+            const el = document.getElementById('api-status');
+            try {
+                const res = await fetch(`${API}/`);
+                const data = await res.json();
+                el.innerHTML = `
+                    <div class="info-row">
+                        <span class="label">Message</span>
+                        <span class="value">${esc(data.message || '-')}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Hostname</span>
+                        <span class="value">${esc(data.hostname || '-')}</span>
+                    </div>
+                `;
+            } catch (err) {
+                el.innerHTML = `<span class="error">Failed to reach API: ${esc(err.message)}</span>`;
+            }
+        }
+
+        // Fetch and display app info
+        async function fetchInfo() {
+            const el = document.getElementById('app-info');
+            try {
+                const res = await fetch(`${API}/info`);
+                const data = await res.json();
+                el.innerHTML = `
+                    <div class="info-row">
+                        <span class="label">Version</span>
+                        <span class="value">${esc(data.version || '-')}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Environment</span>
+                        <span class="value">${esc(data.environment || '-')}</span>
+                    </div>
+                `;
+            } catch (err) {
+                el.innerHTML = `<span class="error">Failed to fetch info: ${esc(err.message)}</span>`;
+            }
+        }
+
+        // Fetch all items
+        async function fetchItems() {
+            const list = document.getElementById('item-list');
+            const status = document.getElementById('items-status');
+            try {
+                const res = await fetch(`${API}/items`);
+                const data = await res.json();
+                const items = data.items || [];
+                if (items.length === 0) {
+                    list.innerHTML = '<li style="color:#484f58">No items yet</li>';
+                } else {
+                    list.innerHTML = items.map(item => `
+                        <li>
+                            <span>${esc(item.name)}<span class="item-id">#${item.id}</span></span>
+                            <button class="danger" onclick="deleteItem(${item.id})">Delete</button>
+                        </li>
+                    `).join('');
+                }
+                status.innerHTML = '';
+            } catch (err) {
+                status.innerHTML = `<span class="error">Failed to load items: ${esc(err.message)}</span>`;
+            }
+        }
+
+        // Add a new item
+        async function addItem() {
+            const input = document.getElementById('item-name');
+            const name = input.value.trim();
+            if (!name) return;
+            const status = document.getElementById('items-status');
+            try {
+                const res = await fetch(`${API}/items`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                input.value = '';
+                fetchItems();
+            } catch (err) {
+                status.innerHTML = `<span class="error">Failed to add item: ${esc(err.message)}</span>`;
+            }
+        }
+
+        // Delete an item
+        async function deleteItem(id) {
+            const status = document.getElementById('items-status');
+            try {
+                const res = await fetch(`${API}/items/${id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                fetchItems();
+            } catch (err) {
+                status.innerHTML = `<span class="error">Failed to delete item: ${esc(err.message)}</span>`;
+            }
+        }
+
+        // Test the secret endpoint
+        async function testSecret() {
+            const el = document.getElementById('secret-result');
+            try {
+                const res = await fetch(`${API}/secret-test`);
+                const data = await res.json();
+                el.innerHTML = `<div class="secret-value ${data.secret_exists ? 'success' : 'error'}">${esc(JSON.stringify(data, null, 2))}</div>`;
+            } catch (err) {
+                el.innerHTML = `<div class="secret-value error">Error: ${esc(err.message)}</div>`;
+            }
+        }
+
+        // Escape HTML to prevent XSS
+        function esc(str) {
+            const d = document.createElement('div');
+            d.textContent = String(str);
+            return d.innerHTML;
+        }
+
+        // Allow adding items with Enter key
+        document.getElementById('item-name').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') addItem();
+        });
+
+        // Initial load
+        fetchStatus();
+        fetchInfo();
+        fetchItems();
+
+        // Auto-refresh status and info every 5 seconds
+        setInterval(() => {
+            fetchStatus();
+            fetchInfo();
+        }, 5000);
+    </script>
+</body>
+</html>

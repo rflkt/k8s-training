@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-pdb
+  namespace: exercices
+spec:
+  # TODO: Set maxUnavailable to limit disruptions during maintenance
+  # maxUnavailable: ???
+
+  # TODO: Configure the selector to target api pods
+  # selector:
+  #   matchLabels:
+  #     app: ???

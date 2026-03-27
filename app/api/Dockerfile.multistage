@@ -1,0 +1,36 @@
+# Optimized multi-stage Dockerfile for the k8s-training API
+#
+# This build produces a minimal container image by:
+# 1. Compiling a fully static binary (CGO_ENABLED=0) so no C libraries are needed at runtime.
+# 2. Using "scratch" (an empty image) as the final base, which contains no shell,
+#    no package manager, and no OS — only the binary and CA certificates.
+# 3. The result is a container image of just a few MB instead of hundreds.
+
+# --- Stage 1: Build the static binary ---
+FROM golang:1.22-alpine AS builder
+
+# Install CA certificates in the builder so we can copy them to scratch
+RUN apk add --no-cache ca-certificates
+
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+
+# Build a statically linked binary — required for scratch base image
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o api .
+
+# --- Stage 2: Minimal runtime image ---
+# scratch is a completely empty image — no OS, no shell, nothing.
+# This minimizes attack surface and image size.
+FROM scratch
+
+# Copy CA certificates so the binary can make HTTPS calls (e.g., to external APIs)
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+# Copy the compiled binary
+COPY --from=builder /app/api /api
+
+EXPOSE 8080
+
+ENTRYPOINT ["/api"]

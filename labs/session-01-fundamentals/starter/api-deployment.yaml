@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: exercices
+spec:
+  # TODO: set replicas to 2
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+        - name: api
+          # TODO: specify the image
+          # TODO: add container port 8080
+          # TODO: add environment variable ENVIRONMENT=training

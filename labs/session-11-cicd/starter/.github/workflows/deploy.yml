@@ -1,0 +1,63 @@
+# CI/CD Pipeline for k8s-training API
+#
+# This workflow builds the API Docker image, pushes it to Google Artifact
+# Registry, and deploys to GKE.
+
+name: Deploy API
+
+# TODO: Trigger this workflow on push to the main branch
+# on:
+#   push:
+#     branches:
+#       - ???
+
+env:
+  PROJECT_ID: cloud-447406
+  REGION: europe-west9
+  REGISTRY: europe-west9-docker.pkg.dev/cloud-447406/training
+  IMAGE_NAME: api
+  GKE_CLUSTER: training-cluster
+  NAMESPACE: exercices
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    # Required for Workload Identity Federation
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # TODO: Authenticate to GCP using Workload Identity Federation
+      # Use: google-github-actions/auth@v2
+      # Parameters:
+      #   workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      #   service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      # TODO: Configure Docker to authenticate with Artifact Registry
+      # Run: gcloud auth configure-docker europe-west9-docker.pkg.dev --quiet
+
+      # TODO: Build the Docker image using the multi-stage Dockerfile
+      # Run: docker build -t $REGISTRY/$IMAGE_NAME:${{ github.sha }} \
+      #        -f app/api/Dockerfile.multistage app/api/
+
+      # TODO: Push the Docker image to Artifact Registry
+      # Run: docker push $REGISTRY/$IMAGE_NAME:${{ github.sha }}
+
+      # TODO: Get GKE cluster credentials
+      # Use: google-github-actions/get-gke-credentials@v2
+      # Parameters:
+      #   cluster_name: training-cluster
+      #   location: europe-west9
+
+      # TODO: Deploy to GKE by updating the container image
+      # Run: kubectl set image deployment/api \
+      #        api=$REGISTRY/$IMAGE_NAME:${{ github.sha }} \
+      #        -n $NAMESPACE
+
+      # TODO: Wait for rollout to complete
+      # Run: kubectl rollout status deployment/api -n $NAMESPACE --timeout=120s

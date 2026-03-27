@@ -1,0 +1,77 @@
+# CI/CD Pipeline for k8s-training API (Solution)
+#
+# This workflow builds the API Docker image, pushes it to Google Artifact
+# Registry, and deploys to GKE.
+
+name: Deploy API
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  PROJECT_ID: cloud-447406
+  REGION: europe-west9
+  REGISTRY: europe-west9-docker.pkg.dev/cloud-447406/training
+  IMAGE_NAME: api
+  GKE_CLUSTER: training-cluster
+  NAMESPACE: exercices
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    # Required for Workload Identity Federation
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Authenticate to GCP using Workload Identity Federation
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      # Configure Docker to push to Artifact Registry
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker europe-west9-docker.pkg.dev --quiet
+
+      # Build the Docker image using the optimized multi-stage Dockerfile
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t $REGISTRY/$IMAGE_NAME:${{ github.sha }} \
+            -t $REGISTRY/$IMAGE_NAME:latest \
+            -f app/api/Dockerfile.multistage \
+            app/api/
+
+      # Push the image to Artifact Registry
+      - name: Push Docker image
+        run: |
+          docker push $REGISTRY/$IMAGE_NAME:${{ github.sha }}
+          docker push $REGISTRY/$IMAGE_NAME:latest
+
+      # Get GKE cluster credentials
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ env.GKE_CLUSTER }}
+          location: ${{ env.REGION }}
+
+      # Deploy to GKE by updating the Deployment image
+      - name: Deploy to GKE
+        run: |
+          kubectl set image deployment/api \
+            api=$REGISTRY/$IMAGE_NAME:${{ github.sha }} \
+            -n $NAMESPACE
+
+      # Wait for the rollout to complete
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/api -n $NAMESPACE --timeout=120s

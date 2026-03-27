@@ -1,0 +1,17 @@
+# =============================================================================
+# Example variable values — copy this file to terraform.tfvars and edit it
+#
+#   cp terraform.tfvars.example terraform.tfvars
+#
+# =============================================================================
+
+# The GCP project ID provided by your instructor
+project_id = "my-gcp-project-id"
+
+# Your first name in lowercase (no spaces, no special characters)
+# This is used to prefix all resources so they don't collide with other students
+student_name = "hugo"
+
+# Region and zone (defaults are fine for this training)
+# region = "europe-west9"
+# zone   = "europe-west9-b"

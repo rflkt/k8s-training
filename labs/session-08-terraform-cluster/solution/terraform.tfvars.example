@@ -1,0 +1,4 @@
+project_id   = "cloud-447406"
+region       = "europe-west9"
+zone         = "europe-west9-a"
+student_name = "votre-prenom"

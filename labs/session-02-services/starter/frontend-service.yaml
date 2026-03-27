@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: exercices
+spec:
+  type: ClusterIP
+  # TODO: add selector to match pods with label app: frontend
+  ports:
+    # TODO: set port to 80 and targetPort to 80
+    - protocol: TCP

@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-nginx-config
+  namespace: exercices
+data:
+  default.conf: |
+    server {
+        listen 80;
+        server_name _;
+
+        location / {
+            root /usr/share/nginx/html;
+            index index.html;
+        }
+
+        # TODO: add a location block for /api/ that proxies requests
+        # to the API service using its internal DNS name
+        # Hint: the API service URL is http://api.exercices.svc.cluster.local:80
+    }

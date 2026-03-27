@@ -1,0 +1,9 @@
+# Uncomment and configure this block to use a remote GCS backend
+# This stores the Terraform state file in a GCS bucket instead of locally
+#
+# terraform {
+#   backend "gcs" {
+#     bucket = "training-tfstate-<YOUR_NAME>"
+#     prefix = "terraform/state"
+#   }
+# }

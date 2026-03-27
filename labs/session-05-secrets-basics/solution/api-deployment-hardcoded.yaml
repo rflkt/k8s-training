@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: exercices
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+        - name: api
+          image: europe-west9-docker.pkg.dev/cloud-447406/training/api:v1
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ENVIRONMENT
+              value: "training"
+            # PROBLEM: password is visible in plain text in the manifest
+            # Anyone with access to the repo or `kubectl get deploy -o yaml` can see it
+            - name: DB_PASSWORD
+              value: "super-secret-password-123"
+            - name: DB_HOST
+              value: "postgres.exercices.svc.cluster.local"
+            - name: DB_USER
+              value: "api-user"

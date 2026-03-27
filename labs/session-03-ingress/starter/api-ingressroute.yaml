@@ -1,0 +1,13 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: api-ingressroute
+  namespace: exercices
+spec:
+  entryPoints:
+    - web
+  routes:
+    # TODO: add a route with the following configuration
+    # - match: Host(`api.training.local`)
+    # - kind: Rule
+    # - services: list with one entry pointing to the api service on port 80

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: exercices
+spec:
+  type: ClusterIP
+  # TODO: add selector to match pods with label app: api
+  ports:
+    # TODO: set port to 80 and targetPort to 8080
+    - protocol: TCP

@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-allow-frontend
+  namespace: exercices
+spec:
+  # Apply this policy to the API pods
+  podSelector:
+    matchLabels:
+      app: api
+  policyTypes:
+    - Ingress
+  # Only allow traffic from frontend pods on port 8080
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: frontend
+      ports:
+        - protocol: TCP
+          port: 8080

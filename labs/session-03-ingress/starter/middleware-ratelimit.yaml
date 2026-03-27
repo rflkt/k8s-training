@@ -1,0 +1,9 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: ratelimit
+  namespace: exercices
+spec:
+  rateLimit:
+    # TODO: set average to 100 (requests per second)
+    # TODO: set burst to 200
