@@ -5,7 +5,8 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN go build -o api .
+ARG APP_VERSION=1.0
+RUN go build -ldflags="-X main.version=${APP_VERSION}" -o api .
 
 FROM alpine:3.19
 

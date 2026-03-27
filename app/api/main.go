@@ -21,6 +21,9 @@ type Item struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+// Version is set at build time via -ldflags.
+var version = "1.0"
+
 var db *sql.DB
 
 func main() {
@@ -112,7 +115,8 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 
 	hostname, _ := os.Hostname()
 	writeJSON(w, http.StatusOK, map[string]string{
-		"message":  "Hello from k8s-training!",
+		"message":  fmt.Sprintf("Hello from k8s-training! (v%s)", version),
+		"version":  version,
 		"hostname": hostname,
 	})
 }
@@ -143,7 +147,7 @@ func handleReady(w http.ResponseWriter, r *http.Request) {
 func handleInfo(w http.ResponseWriter, r *http.Request) {
 	env := getEnv("ENVIRONMENT", "development")
 	writeJSON(w, http.StatusOK, map[string]string{
-		"version":     "1.0",
+		"version":     version,
 		"environment": env,
 	})
 }
