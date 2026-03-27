@@ -38,8 +38,16 @@ func main() {
 		}
 		defer db.Close()
 
+		// Retry connecting to the database (handles container startup ordering)
+		for i := 0; i < 30; i++ {
+			if err := db.Ping(); err == nil {
+				break
+			}
+			log.Printf("Waiting for database... (%d/30)", i+1)
+			time.Sleep(time.Second)
+		}
 		if err := db.Ping(); err != nil {
-			log.Fatalf("Failed to ping database: %v", err)
+			log.Fatalf("Failed to connect to database after 30s: %v", err)
 		}
 		log.Println("Connected to database")
 
