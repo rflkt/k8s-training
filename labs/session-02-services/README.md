@@ -87,7 +87,21 @@ kubectl apply -f starter/frontend-configmap.yaml
 
 ---
 
-## Etape 4 : Deployer le frontend
+## Etape 4 : Deployer le frontend HTML personnalise
+
+Le fichier `starter/frontend-html-configmap.yaml` contient une page HTML personnalisee qui affiche le statut de l'API, le hostname du pod et la version de l'application. Cette page se rafraichit automatiquement toutes les 5 secondes — vous verrez le hostname changer quand les requetes sont reparties entre les pods.
+
+Deployez le ConfigMap HTML :
+
+```bash
+kubectl apply -f starter/frontend-html-configmap.yaml
+```
+
+> **Note** : Le Deployment du frontend monte ce ConfigMap dans `/usr/share/nginx/html/index.html` pour remplacer la page par defaut de nginx.
+
+---
+
+## Etape 5 : Deployer le frontend
 
 Ouvrez le fichier `starter/frontend-deployment.yaml` et completez les `TODO` :
 
@@ -104,7 +118,7 @@ kubectl apply -f starter/frontend-service.yaml
 
 ---
 
-## Etape 5 : Tester le frontend
+## Etape 6 : Tester le frontend
 
 Utilisez un port-forward pour acceder au frontend :
 
@@ -112,10 +126,12 @@ Utilisez un port-forward pour acceder au frontend :
 kubectl port-forward svc/frontend 8080:80 -n exercices
 ```
 
-Testez :
+Ouvrez http://localhost:8080 dans votre navigateur. Vous devriez voir la page personnalisee avec le statut de l'API, le hostname du pod et la version.
+
+Testez aussi en ligne de commande :
 
 ```bash
-# Page d'accueil nginx
+# Page d'accueil personnalisee
 curl http://localhost:8080/
 
 # Requete proxifiee vers l'API
@@ -126,7 +142,7 @@ La requete `/api/health` est proxifiee par nginx vers le Service `api` via le DN
 
 ---
 
-## Etape 6 : Rolling update
+## Etape 7 : Rolling update
 
 Mettez a jour l'image de l'API vers la v2 :
 
@@ -148,9 +164,11 @@ kubectl port-forward svc/api 9090:80 -n exercices
 curl http://localhost:9090/health
 ```
 
+> **Astuce** : Gardez le navigateur ouvert sur http://localhost:8080 pendant le rolling update. Le badge de version passera de `v1` a `v2` et vous verrez les hostnames changer au fur et a mesure que les nouveaux pods remplacent les anciens.
+
 ---
 
-## Etape 7 : Rollback
+## Etape 8 : Rollback
 
 Revenez a la version precedente :
 
