@@ -48,9 +48,9 @@ kubectl get pods -n traefik
 # Verifier le service LoadBalancer
 kubectl get svc -n traefik
 
-# Acceder au dashboard Traefik
-kubectl port-forward -n traefik svc/traefik 8080:80
-# Ouvrez http://localhost:8080/dashboard/ dans votre navigateur
+# Acceder au dashboard Traefik (port interne 9000)
+kubectl port-forward -n traefik deployment/traefik 9000:9000
+# Ouvrez http://localhost:9000/dashboard/ dans votre navigateur
 ```
 
 ---
@@ -108,15 +108,16 @@ curl http://api.training.local/health
 
 ## Etape 4 : Creer un IngressRoute pour le frontend
 
-Creez un fichier `frontend-ingressroute.yaml` sur le modele de l'API, avec :
+Ouvrez le fichier `starter/frontend-ingressroute.yaml` et completez les `TODO` (meme structure que l'API) :
 
-- `match: Host(`frontend.training.local`)`
-- Service `frontend` sur le port `80`
+1. Ajoutez une route avec `match: Host(`frontend.training.local`)`
+2. Specifiez `kind: Rule`
+3. Ajoutez le service `frontend` sur le port `80`
 
 Deployez et testez :
 
 ```bash
-kubectl apply -f frontend-ingressroute.yaml
+kubectl apply -f starter/frontend-ingressroute.yaml
 curl -H "Host: frontend.training.local" http://$TRAEFIK_IP/
 ```
 

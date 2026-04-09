@@ -35,6 +35,6 @@ logs:
 ingressRoute:
   dashboard:
     enabled: true
-    matchRule: PathPrefix(`/dashboard`) || PathPrefix(`/api`)
+    matchRule: PathPrefix(`/dashboard`)
     entryPoints:
-      - web
+      - traefik
