@@ -7,7 +7,7 @@ spec:
   entryPoints:
     - web
   routes:
-    - match: Host(`frontend.training.local`)
+    - match: Host(`frontend.training.test`)
       kind: Rule
       services:
         - name: frontend

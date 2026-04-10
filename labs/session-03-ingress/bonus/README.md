@@ -18,14 +18,14 @@ spec:
   entryPoints:
     - web
   routes:
-    - match: Host(`app.training.local`) && PathPrefix(`/api`)
+    - match: Host(`app.training.test`) && PathPrefix(`/api`)
       kind: Rule
       middlewares:
         - name: strip-api
       services:
         - name: api
           port: 80
-    - match: Host(`app.training.local`)
+    - match: Host(`app.training.test`)
       kind: Rule
       services:
         - name: frontend
@@ -50,10 +50,10 @@ Testez :
 
 ```bash
 # Ajouter l'entree dans /etc/hosts si besoin
-# echo "$TRAEFIK_IP app.training.local" | sudo tee -a /etc/hosts
+# echo "$TRAEFIK_IP app.training.test" | sudo tee -a /etc/hosts
 
-curl -H "Host: app.training.local" http://$TRAEFIK_IP/
-curl -H "Host: app.training.local" http://$TRAEFIK_IP/api/health
+curl -H "Host: app.training.test" http://$TRAEFIK_IP/
+curl -H "Host: app.training.test" http://$TRAEFIK_IP/api/health
 ```
 
 **Question** : Quel est l'avantage d'un routing par chemin vs par domaine ? Quand prefereriez-vous l'un ou l'autre ?
@@ -78,7 +78,7 @@ spec:
       X-XSS-Protection: "1; mode=block"
       Referrer-Policy: "strict-origin-when-cross-origin"
     accessControlAllowOriginList:
-      - "https://app.training.local"
+      - "https://app.training.test"
     accessControlAllowMethods:
       - "GET"
       - "POST"
@@ -89,7 +89,7 @@ spec:
 Ajoutez-le a l'IngressRoute du frontend et verifiez les en-tetes :
 
 ```bash
-curl -v -H "Host: frontend.training.local" http://$TRAEFIK_IP/ 2>&1 | grep -i "x-frame\|x-content\|x-xss\|referrer"
+curl -v -H "Host: frontend.training.test" http://$TRAEFIK_IP/ 2>&1 | grep -i "x-frame\|x-content\|x-xss\|referrer"
 ```
 
 **Question** : Pourquoi ces headers sont-ils importants en production ? Lequel protege contre le clickjacking ?
@@ -122,7 +122,7 @@ spec:
   entryPoints:
     - web
   routes:
-    - match: Host(`api.training.local`)
+    - match: Host(`api.training.test`)
       kind: Rule
       services:
         - name: api
@@ -137,7 +137,7 @@ Testez la repartition :
 
 ```bash
 for i in $(seq 1 100); do
-  curl -s -H "Host: api.training.local" http://$TRAEFIK_IP/health | grep -o '"version":"[^"]*"'
+  curl -s -H "Host: api.training.test" http://$TRAEFIK_IP/health | grep -o '"version":"[^"]*"'
 done | sort | uniq -c
 ```
 

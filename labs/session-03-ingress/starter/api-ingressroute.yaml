@@ -8,6 +8,6 @@ spec:
     - web
   routes:
     # TODO: add a route with the following configuration
-    # - match: Host(`api.training.local`)
+    # - match: Host(`api.training.test`)
     # - kind: Rule
     # - services: list with one entry pointing to the api service on port 80

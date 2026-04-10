@@ -7,7 +7,7 @@ spec:
   entryPoints:
     - web
   routes:
-    - match: Host(`api.training.local`)
+    - match: Host(`api.training.test`)
       kind: Rule
       services:
         - name: api

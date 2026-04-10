@@ -45,8 +45,10 @@ Verifiez l'installation :
 # Verifier que les pods Traefik sont en cours d'execution
 kubectl get pods -n traefik
 
-# Verifier le service LoadBalancer
+# Verifier le service LoadBalancer (l'IP externe peut prendre 1-2 min sur GKE)
 kubectl get svc -n traefik
+# Si EXTERNAL-IP affiche <pending>, attendez et re-essayez :
+kubectl get svc -n traefik -w
 
 # Acceder au dashboard Traefik (port interne 9000)
 kubectl port-forward -n traefik deployment/traefik 9000:9000
@@ -59,7 +61,7 @@ kubectl port-forward -n traefik deployment/traefik 9000:9000
 
 Ouvrez le fichier `starter/api-ingressroute.yaml` et completez les `TODO` :
 
-1. Ajoutez une route avec `match: Host(`api.training.local`)`
+1. Ajoutez une route avec `match: Host(`api.training.test`)`
 2. Specifiez `kind: Rule`
 3. Ajoutez le service `api` sur le port `80`
 
@@ -89,19 +91,30 @@ echo $TRAEFIK_IP
 Testez l'acces a l'API via Traefik :
 
 ```bash
-curl -H "Host: api.training.local" http://$TRAEFIK_IP/health
+curl -H "Host: api.training.test" http://$TRAEFIK_IP/health
 ```
 
-Si vous travaillez en local, ajoutez l'entree dans `/etc/hosts` :
+Ajoutez les entrees DNS dans votre fichier hosts :
+
+**macOS / Linux :**
 
 ```bash
-echo "$TRAEFIK_IP api.training.local frontend.training.local" | sudo tee -a /etc/hosts
+echo "$TRAEFIK_IP api.training.test frontend.training.test" | sudo tee -a /etc/hosts
+# Sur macOS, videz le cache DNS :
+sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder
+```
+
+**Windows (PowerShell en Administrateur) :**
+
+```powershell
+$traefikIp = kubectl get svc traefik -n traefik -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+Add-Content -Path C:\Windows\System32\drivers\etc\hosts -Value "$traefikIp api.training.test frontend.training.test"
 ```
 
 Puis testez directement :
 
 ```bash
-curl http://api.training.local/health
+curl http://api.training.test/health
 ```
 
 ---
@@ -110,7 +123,7 @@ curl http://api.training.local/health
 
 Ouvrez le fichier `starter/frontend-ingressroute.yaml` et completez les `TODO` (meme structure que l'API) :
 
-1. Ajoutez une route avec `match: Host(`frontend.training.local`)`
+1. Ajoutez une route avec `match: Host(`frontend.training.test`)`
 2. Specifiez `kind: Rule`
 3. Ajoutez le service `frontend` sur le port `80`
 
@@ -118,7 +131,7 @@ Deployez et testez :
 
 ```bash
 kubectl apply -f starter/frontend-ingressroute.yaml
-curl -H "Host: frontend.training.local" http://$TRAEFIK_IP/
+curl -H "Host: frontend.training.test" http://$TRAEFIK_IP/
 ```
 
 ---
@@ -140,7 +153,7 @@ Modifiez l'IngressRoute de l'API pour utiliser le middleware :
 
 ```yaml
 routes:
-  - match: Host(`api.training.local`)
+  - match: Host(`api.training.test`)
     kind: Rule
     middlewares:
       - name: ratelimit
@@ -156,7 +169,7 @@ kubectl apply -f starter/api-ingressroute.yaml
 
 # Testez avec des requetes rapides
 for i in $(seq 1 250); do
-  curl -s -o /dev/null -w "%{http_code}\n" -H "Host: api.training.local" http://$TRAEFIK_IP/health
+  curl -s -o /dev/null -w "%{http_code}\n" -H "Host: api.training.test" http://$TRAEFIK_IP/health
 done
 ```
 
@@ -180,7 +193,7 @@ spec:
       - /backend
 ```
 
-Ajoutez une route qui matche `Host(`api.training.local`) && PathPrefix(`/backend`)` avec ce middleware. Cela permet d'acceder a l'API via `http://api.training.local/backend/health` tout en retirant `/backend` avant de transmettre la requete au service.
+Ajoutez une route qui matche `Host(`api.training.test`) && PathPrefix(`/backend`)` avec ce middleware. Cela permet d'acceder a l'API via `http://api.training.test/backend/health` tout en retirant `/backend` avant de transmettre la requete au service.
 
 ---
 

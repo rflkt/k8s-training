@@ -8,6 +8,6 @@ spec:
     - web
   routes:
     # TODO: add a route with the following configuration
-    # - match: Host(`frontend.training.local`)
+    # - match: Host(`frontend.training.test`)
     # - kind: Rule
     # - services: list with one entry pointing to the frontend service on port 80
