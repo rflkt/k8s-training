@@ -1,5 +1,5 @@
 # Helm values for Traefik installation
-# Install with: helm install traefik traefik/traefik -n traefik --create-namespace -f traefik-values.yaml
+# Install with: helm install traefik-<NOM> traefik/traefik -n traefik-<NOM> --create-namespace -f traefik-values.yaml
 
 providers:
   kubernetesCRD:

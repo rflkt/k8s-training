@@ -1,7 +1,7 @@
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: ratelimit
+  name: ratelimit-<NOM>  # Remplacez <NOM> par votre prenom
   namespace: exercices
 spec:
   rateLimit:

@@ -1,6 +1,7 @@
 # Session 3 — Exercices Bonus
 
 > Pour ceux qui ont termine le TP principal en avance. Chaque exercice est independant.
+> Pensez a remplacer `<NOM>` par votre prenom dans tous les fichiers YAML et commandes.
 
 ---
 
@@ -12,23 +13,23 @@ Au lieu de router par domaine, routez par chemin URL. Creez un IngressRoute uniq
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: unified-ingressroute
+  name: unified-ingressroute-<NOM>
   namespace: exercices
 spec:
   entryPoints:
     - web
   routes:
-    - match: Host(`app.training.test`) && PathPrefix(`/api`)
+    - match: Host(`app-<NOM>.training.test`) && PathPrefix(`/api`)
       kind: Rule
       middlewares:
-        - name: strip-api
+        - name: strip-api-<NOM>
       services:
-        - name: api
+        - name: api-<NOM>
           port: 80
-    - match: Host(`app.training.test`)
+    - match: Host(`app-<NOM>.training.test`)
       kind: Rule
       services:
-        - name: frontend
+        - name: frontend-<NOM>
           port: 80
 ```
 
@@ -38,7 +39,7 @@ Creez le middleware `strip-api` pour retirer le prefix `/api` :
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: strip-api
+  name: strip-api-<NOM>
   namespace: exercices
 spec:
   stripPrefix:
@@ -50,10 +51,10 @@ Testez :
 
 ```bash
 # Ajouter l'entree dans /etc/hosts si besoin
-# echo "$TRAEFIK_IP app.training.test" | sudo tee -a /etc/hosts
+# echo "$TRAEFIK_IP app-<NOM>.training.test" | sudo tee -a /etc/hosts
 
-curl -H "Host: app.training.test" http://$TRAEFIK_IP/
-curl -H "Host: app.training.test" http://$TRAEFIK_IP/api/health
+curl -H "Host: app-<NOM>.training.test" http://$TRAEFIK_IP/
+curl -H "Host: app-<NOM>.training.test" http://$TRAEFIK_IP/api/health
 ```
 
 **Question** : Quel est l'avantage d'un routing par chemin vs par domaine ? Quand prefereriez-vous l'un ou l'autre ?
@@ -68,7 +69,7 @@ Creez un middleware qui ajoute des en-tetes de securite HTTP a toutes les repons
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: security-headers
+  name: security-headers-<NOM>
   namespace: exercices
 spec:
   headers:
@@ -78,7 +79,7 @@ spec:
       X-XSS-Protection: "1; mode=block"
       Referrer-Policy: "strict-origin-when-cross-origin"
     accessControlAllowOriginList:
-      - "https://app.training.test"
+      - "https://app-<NOM>.training.test"
     accessControlAllowMethods:
       - "GET"
       - "POST"
@@ -89,7 +90,7 @@ spec:
 Ajoutez-le a l'IngressRoute du frontend et verifiez les en-tetes :
 
 ```bash
-curl -v -H "Host: frontend.training.test" http://$TRAEFIK_IP/ 2>&1 | grep -i "x-frame\|x-content\|x-xss\|referrer"
+curl -v -H "Host: frontend-<NOM>.training.test" http://$TRAEFIK_IP/ 2>&1 | grep -i "x-frame\|x-content\|x-xss\|referrer"
 ```
 
 **Question** : Pourquoi ces headers sont-ils importants en production ? Lequel protege contre le clickjacking ?
@@ -102,12 +103,12 @@ Configurez un canary deployment via le routage pondere de Traefik. Deployez l'AP
 
 ```bash
 # Creer un deployment api-v2
-kubectl create deployment api-v2 -n exercices \
+kubectl create deployment api-v2-<NOM> -n exercices \
   --image=europe-west9-docker.pkg.dev/cloud-447406/training/api:v2 \
   --port=8080
 
 # Exposer via un service
-kubectl expose deployment api-v2 -n exercices --port=80 --target-port=8080
+kubectl expose deployment api-v2-<NOM> -n exercices --port=80 --target-port=8080
 ```
 
 Modifiez l'IngressRoute pour envoyer 90% du trafic vers v1 et 10% vers v2 :
@@ -116,19 +117,19 @@ Modifiez l'IngressRoute pour envoyer 90% du trafic vers v1 et 10% vers v2 :
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: api-ingressroute
+  name: api-ingressroute-<NOM>
   namespace: exercices
 spec:
   entryPoints:
     - web
   routes:
-    - match: Host(`api.training.test`)
+    - match: Host(`api-<NOM>.training.test`)
       kind: Rule
       services:
-        - name: api
+        - name: api-<NOM>
           port: 80
           weight: 90
-        - name: api-v2
+        - name: api-v2-<NOM>
           port: 80
           weight: 10
 ```
@@ -137,7 +138,7 @@ Testez la repartition :
 
 ```bash
 for i in $(seq 1 100); do
-  curl -s -H "Host: api.training.test" http://$TRAEFIK_IP/health | grep -o '"version":"[^"]*"'
+  curl -s -H "Host: api-<NOM>.training.test" http://$TRAEFIK_IP/health | grep -o '"version":"[^"]*"'
 done | sort | uniq -c
 ```
 
@@ -152,7 +153,7 @@ Vous devriez voir environ 90 reponses v1 et 10 reponses v2.
 Ouvrez le dashboard Traefik et explorez :
 
 ```bash
-kubectl port-forward -n traefik deployment/traefik 9000:9000
+kubectl port-forward -n traefik-<NOM> deployment/traefik-<NOM> 9000:9000
 # Ouvrez http://localhost:9000/dashboard/
 ```
 

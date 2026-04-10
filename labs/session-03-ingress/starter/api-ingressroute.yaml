@@ -1,13 +1,13 @@
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: api-ingressroute
+  name: api-ingressroute-<NOM>  # Remplacez <NOM> par votre prenom
   namespace: exercices
 spec:
   entryPoints:
     - web
   routes:
     # TODO: add a route with the following configuration
-    # - match: Host(`api.training.test`)
+    # - match: Host(`api-<NOM>.training.test`)
     # - kind: Rule
-    # - services: list with one entry pointing to the api service on port 80
+    # - services: list with one entry pointing to api-<NOM> on port 80
