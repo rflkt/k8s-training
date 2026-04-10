@@ -1,6 +1,10 @@
 # Helm values for Traefik installation
 # Install with: helm install traefik-<NOM> traefik/traefik -n traefik-<NOM> --create-namespace -f traefik-values.yaml
 
+api:
+  dashboard: true
+  insecure: true
+
 providers:
   kubernetesCRD:
     enabled: true
