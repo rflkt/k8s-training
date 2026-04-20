@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: postgres-init-schema
+  name: postgres-init-schema-tim  # Remplacez tim par votre prenom
   namespace: exercices
 data:
   init-schema.sql: |

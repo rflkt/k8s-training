@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: postgres
+  name: postgres-<NOM>  # Remplacez <NOM> par votre prenom
   namespace: exercices
 spec:
-  serviceName: postgres
+  serviceName: postgres-<NOM>  # Doit correspondre au Service headless
   replicas: 1
   selector:
     matchLabels:
-      app: postgres
+      app: postgres-<NOM>
   template:
     metadata:
       labels:
-        app: postgres
+        app: postgres-<NOM>
     spec:
       containers:
         - name: postgres

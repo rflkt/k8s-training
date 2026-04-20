@@ -16,6 +16,9 @@
 - Sessions 1 et 2 terminees (API deployee avec son Service)
 - Namespace `exercices` cree
 
+> **Convention** : on utilise `<NOM>` comme prefixe personnel (ex: `tim`, `ara`).
+> Remplacez `<NOM>` par votre prenom dans toutes les commandes et fichiers YAML.
+
 ---
 
 ## Etape 1 : Deployer PostgreSQL avec un StatefulSet
@@ -48,8 +51,8 @@ Observez la creation :
 # Voir le StatefulSet
 kubectl get statefulset -n exercices
 
-# Voir le pod (notez le nom avec un suffixe numerique : postgres-0)
-kubectl get pods -n exercices -l app=postgres
+# Voir le pod (notez le nom avec un suffixe numerique : postgres-<NOM>-0)
+kubectl get pods -n exercices -l app=postgres-<NOM>
 
 # Voir le PVC cree automatiquement
 kubectl get pvc -n exercices
@@ -69,7 +72,7 @@ Deployez :
 kubectl apply -f starter/postgres-service.yaml
 ```
 
-Un Service headless ne fournit pas de load-balancing. Il permet d'acceder directement aux pods par leur DNS : `postgres-0.postgres.exercices.svc.cluster.local`.
+Un Service headless ne fournit pas de load-balancing. Il permet d'acceder directement aux pods par leur DNS : `postgres-<NOM>-0.postgres-<NOM>.exercices.svc.cluster.local`.
 
 ---
 
@@ -78,8 +81,8 @@ Un Service headless ne fournit pas de load-balancing. Il permet d'acceder direct
 Utilisez `psql` via un pod temporaire :
 
 ```bash
-kubectl run -n exercices psql --rm -it --image=postgres:17 -- \
-  psql -h postgres.exercices.svc.cluster.local -U admin -d training
+kubectl run -n exercices psql-<NOM> --rm -it --image=postgres:17 -- \
+  psql -h postgres-<NOM>.exercices.svc.cluster.local -U admin -d training
 ```
 
 Le mot de passe est `training-password`.
@@ -102,17 +105,17 @@ Executez le script SQL fourni pour creer la table `items` :
 
 ```bash
 # Copier le fichier SQL dans le pod postgres
-kubectl cp starter/init-schema.sql exercices/postgres-0:/tmp/init-schema.sql
+kubectl cp starter/init-schema.sql exercices/postgres-<NOM>-0:/tmp/init-schema.sql
 
 # Executer le script
-kubectl exec -n exercices postgres-0 -- \
+kubectl exec -n exercices postgres-<NOM>-0 -- \
   psql -U admin -d training -f /tmp/init-schema.sql
 ```
 
 Verifiez :
 
 ```bash
-kubectl exec -n exercices postgres-0 -- \
+kubectl exec -n exercices postgres-<NOM>-0 -- \
   psql -U admin -d training -c "SELECT * FROM items;"
 ```
 
@@ -124,13 +127,13 @@ Supprimez le pod PostgreSQL et verifiez que les donnees sont conservees :
 
 ```bash
 # Supprimer le pod
-kubectl delete pod postgres-0 -n exercices
+kubectl delete pod postgres-<NOM>-0 -n exercices
 
 # Observer la recreation automatique
-kubectl get pods -n exercices -l app=postgres -w
+kubectl get pods -n exercices -l app=postgres-<NOM> -w
 
 # Attendre que le pod soit Ready, puis verifier les donnees
-kubectl exec -n exercices postgres-0 -- \
+kubectl exec -n exercices postgres-<NOM>-0 -- \
   psql -U admin -d training -c "SELECT * FROM items;"
 ```
 
@@ -146,7 +149,7 @@ Ajoutez la variable d'environnement `DATABASE_URL` :
 
 ```yaml
 - name: DATABASE_URL
-  value: postgres://admin:training-password@postgres.exercices.svc.cluster.local:5432/training?sslmode=disable
+  value: postgres://admin:training-password@postgres-<NOM>.exercices.svc.cluster.local:5432/training?sslmode=disable
 ```
 
 Deployez la mise a jour :
@@ -162,7 +165,7 @@ kubectl apply -f starter/api-deployment-db.yaml
 Testez l'API connectee a la base de donnees :
 
 ```bash
-kubectl port-forward svc/api 9090:80 -n exercices
+kubectl port-forward svc/api-<NOM> 9090:80 -n exercices
 ```
 
 Dans un autre terminal :
@@ -178,6 +181,12 @@ curl -X POST http://localhost:9090/items \
 
 # Verifier
 curl http://localhost:9090/items
+```
+
+Si vous avez configure Traefik a la session 3, vous pouvez aussi tester via votre IngressRoute :
+
+```bash
+curl http://api-<NOM>.training.test/items
 ```
 
 ---
@@ -199,7 +208,7 @@ Utilisez un init container pour initialiser automatiquement le schema au demarra
 
 1. Creez un ConfigMap contenant le script SQL :
    ```bash
-   kubectl create configmap postgres-init-schema \
+   kubectl create configmap postgres-init-schema-<NOM> \
      --from-file=init-schema.sql=starter/init-schema.sql \
      -n exercices
    ```
@@ -214,7 +223,7 @@ Utilisez un init container pour initialiser automatiquement le schema au demarra
    volumes:
      - name: init-scripts
        configMap:
-         name: postgres-init-schema
+         name: postgres-init-schema-<NOM>
    ```
 
 PostgreSQL execute automatiquement les scripts dans `/docker-entrypoint-initdb.d/` lors de la premiere initialisation de la base.
@@ -235,7 +244,7 @@ Exemple de CronJob :
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: postgres-backup
+  name: postgres-backup-<NOM>
   namespace: exercices
 spec:
   schedule: "0 * * * *"
@@ -249,7 +258,7 @@ spec:
               command:
                 - /bin/sh
                 - -c
-                - pg_dump -h postgres -U admin training > /backups/backup-$(date +%Y%m%d-%H%M).sql
+                - pg_dump -h postgres-<NOM> -U admin training > /backups/backup-$(date +%Y%m%d-%H%M).sql
               env:
                 - name: PGPASSWORD
                   value: training-password

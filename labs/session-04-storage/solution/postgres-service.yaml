@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres
+  name: postgres-tim  # Remplacez tim par votre prenom
   namespace: exercices
 spec:
   clusterIP: None
   selector:
-    app: postgres
+    app: postgres-tim
   ports:
     - port: 5432
       targetPort: 5432

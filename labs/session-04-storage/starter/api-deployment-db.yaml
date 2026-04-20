@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: api
+  name: api-<NOM>  # Remplacez <NOM> par votre prenom
   namespace: exercices
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: api
+      app: api-<NOM>
   template:
     metadata:
       labels:
-        app: api
+        app: api-<NOM>
     spec:
       containers:
         - name: api
@@ -22,4 +22,4 @@ spec:
             - name: ENVIRONMENT
               value: training
             # TODO: add DATABASE_URL environment variable
-            # Format: postgres://admin:training-password@postgres.exercices.svc.cluster.local:5432/training?sslmode=disable
+            # Format: postgres://admin:training-password@postgres-<NOM>.exercices.svc.cluster.local:5432/training?sslmode=disable
