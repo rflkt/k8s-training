@@ -26,6 +26,10 @@ spec:
               value: admin
             - name: POSTGRES_PASSWORD
               value: training-password
+            # PGDATA pointe vers un sous-repertoire pour eviter le conflit avec lost+found
+            # cree par le filesystem ext4 des Persistent Disks GKE
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
           volumeMounts:
             - name: postgres-data
               mountPath: /var/lib/postgresql/data

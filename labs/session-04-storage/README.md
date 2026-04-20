@@ -39,6 +39,8 @@ volumeClaimTemplates:
           storage: 5Gi
 ```
 
+> **Note** : le manifest definit `PGDATA=/var/lib/postgresql/data/pgdata`. C'est un sous-repertoire car le point de montage d'un Persistent Disk GKE contient un dossier `lost+found` (filesystem ext4), et `initdb` refuse d'initialiser dans un repertoire non vide.
+
 Deployez le StatefulSet :
 
 ```bash
