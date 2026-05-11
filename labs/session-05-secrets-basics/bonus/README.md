@@ -54,6 +54,10 @@ spec:
       labels:
         app: api-multi
     spec:
+      # Indispensable : ServiceAccount pre-cree avec Workload Identity binding
+      # vers GCP. Sans cette ligne, le CSI driver fait l'appel a Secret Manager
+      # avec le default SA → permission denied sur secretmanager.versions.access.
+      serviceAccountName: training-apps
       containers:
         - name: api
           image: europe-west9-docker.pkg.dev/cloud-447406/training/api:v1
