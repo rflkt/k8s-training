@@ -85,3 +85,8 @@ Thumbs.db
 # =====================
 kind-config-state/
 kubeconfig-*
+
+# =====================
+# Slide sources (PPTX)
+# =====================
+pptx/

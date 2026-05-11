@@ -1,18 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: api
+  name: api-<NOM>  # Remplacez <NOM> par votre prenom
   namespace: exercices
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: api
+      app: api-<NOM>
   template:
     metadata:
       labels:
-        app: api
+        app: api-<NOM>
     spec:
+      # ServiceAccount pre-cree avec Workload Identity binding vers GCP
+      # (autorise a lire GCP Secret Manager via roles/secretmanager.secretAccessor)
+      serviceAccountName: training-apps
       containers:
         - name: api
           image: europe-west9-docker.pkg.dev/cloud-447406/training/api:v1
@@ -31,4 +34,4 @@ spec:
       #       driver: secrets-store.csi.k8s.io
       #       readOnly: true
       #       volumeAttributes:
-      #         secretProviderClass: "gcp-secrets"
+      #         secretProviderClass: "gcp-secrets-<NOM>"
