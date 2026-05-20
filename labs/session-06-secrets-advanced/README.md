@@ -12,7 +12,7 @@
 - Acces au cluster GKE partage de la formation (`training-cluster` dans le projet `cloud-447406`)
 - Namespace `exercices` deja cree
 - **External Secrets Operator deja installe** par le formateur (namespace `external-secrets`, cluster-scoped)
-- Secrets GCP `training-api-key` et `training-db-password` deja crees par le formateur dans `cloud-447406`
+- Secrets GCP `training-api-key`, `training-db-password` et `training-oauth-token` deja crees par le formateur dans `cloud-447406` (`training-oauth-token` est utilise par le mini-defi et le bonus 1)
 - K8s ServiceAccount `exercices/training-apps` deja lie a la GCP SA `training-apps@cloud-447406.iam.gserviceaccount.com` via Workload Identity (role `roles/secretmanager.secretAccessor`)
 
 > **Convention** : on utilise `<NOM>` comme prefixe personnel (ex: `tim`, `ara`).

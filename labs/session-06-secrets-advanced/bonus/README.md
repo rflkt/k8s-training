@@ -32,10 +32,11 @@ spec:
       type: Opaque
       data:
         # Concatene les 3 secrets en un seul fichier .env
+        # | trim retire le \n final que GCP Secret Manager ajoute sur certaines valeurs
         .env: |
-          DB_PASSWORD={{ .db_password }}
-          API_KEY={{ .api_key }}
-          OAUTH_TOKEN={{ .oauth_token }}
+          DB_PASSWORD={{ .db_password | trim }}
+          API_KEY={{ .api_key | trim }}
+          OAUTH_TOKEN={{ .oauth_token | trim }}
   data:
     - secretKey: db_password
       remoteRef:
