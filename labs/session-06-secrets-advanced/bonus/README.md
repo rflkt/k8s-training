@@ -540,32 +540,109 @@ Observez les champs renvoyes :
 - `Storage Type: inmem` -- en memoire. Restart = perte de tout.
 - `Cluster Name: vault-cluster-...` -- nom auto-genere.
 
-### Etape 3 : KV secrets engine (statique -- equivalent GCP Secret Manager)
+### Etape 2.5 : Acceder a l'UI Vault dans le navigateur
 
-Le KV engine v2 est monte automatiquement en dev mode sur le chemin `secret/`.
+Vault embarque une UI web sur le port 8200. On la rend accessible depuis votre laptop avec `kubectl port-forward` :
 
 ```bash
-# Ecrire un secret
-v kv put secret/api db_password=hello-from-vault api_key=42
+# Dans un terminal dedie (la commande reste bloquante) :
+kubectl -n exercices port-forward deploy/vault-dev-<NOM> 8200:8200
 
-# Le lire
-v kv get secret/api
-
-# Lire une cle specifique en JSON
-v kv get -format=json secret/api | jq '.data.data.db_password'
-
-# Lister les secrets
-v kv list secret/
+# Forwarding from 127.0.0.1:8200 -> 8200
 ```
 
-**Comparez avec GCP Secret Manager** :
+Ouvrez votre navigateur sur **http://localhost:8200/ui** :
+- Method : `Token`
+- Token : `training-root-token`
+
+Vous arrivez sur le dashboard Vault. Explorez :
+- **Secrets engines** : liste des mounts (`secret/` pour le KV, plus d'autres apres l'Etape 5)
+- **Access** > **Auth methods** : `token`, et eventuellement `kubernetes`/`userpass` si vous les activez
+- **Policies** : voyez la policy `root` (tout-puissante)
+- **Tools** : encoder/decoder base64, wrap/unwrap de secrets
+
+Gardez le port-forward ouvert dans un terminal -- les etapes suivantes utilisent indifferemment la CLI ou l'UI. Pour fermer : `Ctrl-C`.
+
+> Tip : si le port 8200 est deja occupe sur votre machine, utilisez un autre port local : `kubectl ... port-forward ... 18200:8200` et ouvrez `http://localhost:18200/ui`.
+
+### Etape 3 : Definir des secrets dans le KV engine (statique)
+
+Le KV engine v2 est monte automatiquement en dev mode sur le chemin `secret/`. C'est l'equivalent fonctionnel de GCP Secret Manager.
+
+#### 3.1 Secret simple a une cle
+
+```bash
+# Via CLI
+v kv put secret/db-creds password=hello-from-vault
+
+# Lire
+v kv get secret/db-creds
+```
+
+Dans l'UI : **Secrets** > **secret/** > **Create secret** > path `db-creds`, key `password`, value `hello-from-vault`. Sauvegardez puis lisez. Notez le bandeau "Version 1".
+
+#### 3.2 Secret structure (plusieurs cles dans un meme path)
+
+Un secret n'est pas qu'une valeur -- c'est un dictionnaire. Tres pratique pour grouper logiquement :
+
+```bash
+# Un secret = plusieurs cles atomiques
+v kv put secret/api/prod \
+  db_user=api-prod \
+  db_password=super-secret \
+  db_host=postgres.prod.internal \
+  api_key=sk-live-abc123 \
+  feature_flag_premium=true
+
+v kv get secret/api/prod
+v kv get -field=db_password secret/api/prod   # extraire une seule cle
+```
+
+Dans l'UI : path `api/prod`, ajoutez les 5 cles avec **+ Add**. Notez que l'UI affiche les valeurs masquees par defaut (icone oeil pour reveler).
+
+#### 3.3 Organiser les secrets en hierarchie (paths)
+
+Vault accepte des chemins arbitrairement profonds, comme un filesystem. Utile pour separer par environnement / equipe / service :
+
+```bash
+v kv put secret/teams/backend/prod/db password=pg-prod-pass
+v kv put secret/teams/backend/staging/db password=pg-staging-pass
+v kv put secret/teams/frontend/prod/cdn token=cdn-prod-token
+
+# Lister un sous-arbre
+v kv list secret/teams/
+v kv list secret/teams/backend/
+```
+
+Dans l'UI : **secret/** > naviguez dans les dossiers (`teams/` > `backend/` > `prod/` ...). C'est la base du modele d'autorisation Vault : les policies referencent des chemins exactement comme ca (ex : `path "secret/data/teams/backend/*" { capabilities = ["read"] }`).
+
+#### 3.4 Metadata et description d'un secret
+
+KV v2 permet d'attacher des metadonnees a un secret (pour audit / inventaire) :
+
+```bash
+v kv metadata put \
+  -custom-metadata=owner=team-backend \
+  -custom-metadata=created-by=hugo \
+  -max-versions=10 \
+  secret/api/prod
+
+v kv metadata get secret/api/prod
+```
+
+Dans l'UI : ouvrez `api/prod` > onglet **Metadata** > **Edit metadata**. Vous y voyez aussi l'historique des versions (creation, suppression, destruction).
+
+#### 3.5 Comparaison rapide avec GCP Secret Manager
 
 | Operation | Vault | GCP Secret Manager |
 |-----------|-------|---------------------|
-| Ecrire | `vault kv put secret/api key=val` | `gcloud secrets versions add api --data-file=-` |
+| Ecrire un secret a 1 cle | `vault kv put secret/db password=x` | `gcloud secrets versions add db --data-file=-` (la valeur est une string opaque) |
+| **Plusieurs cles dans un meme secret** | **Natif** (`vault kv put secret/api k1=v1 k2=v2`) | Non natif -- vous mettez du JSON dans la string et parsez cote app |
 | Lire | `vault kv get secret/api` | `gcloud secrets versions access latest --secret=api` |
-| Lister | `vault kv list secret/` | `gcloud secrets list` |
+| Lister une hierarchie | `vault kv list secret/teams/` | Naming convention + `gcloud secrets list --filter` |
+| Metadata custom | `vault kv metadata put -custom-metadata=...` | Labels GCP sur le secret |
 | Versions | Auto-versionne (KV v2) | Auto-versionne |
+| UI graphique | Oui (Vault UI built-in) | Oui (console GCP) |
 | Stockage | Dans Vault (vous) | Dans Google (geree) |
 
 ### Etape 4 : Les versions (KV v2)
