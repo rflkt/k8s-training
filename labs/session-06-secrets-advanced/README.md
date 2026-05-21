@@ -126,24 +126,69 @@ echo
 > kubectl rollout restart deploy/api-<NOM> -n exercices
 > ```
 
-Pour eviter ce probleme en production : utiliser CSI Secrets Store (rotation des fichiers automatique), un sidecar `reloader`, ou Vault Agent Injector.
+Pour eviter ce probleme en production : utiliser CSI Secrets Store (rotation des fichiers automatique), un sidecar `reloader` (annotation `reloader.stakater.com/auto: "true"` sur le Deployment, qui redemarre les pods quand le Secret change), ou Vault Agent Injector.
 
 ---
 
-## Comparaison CSI vs ESO
+## Etape 6 : Pieges de production a connaitre
 
-| Critere | CSI Secrets Store | External Secrets Operator |
-|---------|-------------------|--------------------------|
-| Stockage | Monte comme fichier | Cree un Secret K8s |
-| Rafraichissement | Rotation automatique des fichiers (avec `enableSecretRotation`) | Automatique sur le Secret K8s (configurable) |
-| Utilisation | Volume mount | envFrom / env |
-| Visibilite | Pas de Secret K8s | Secret K8s cree (visible dans etcd) |
-| Rotation cote pod | Recharge le fichier sans redemarrage | Necessite redemarrage du pod pour env vars |
-| Multi-provider | Oui | Oui |
+ESO est puissant mais comporte des comportements subtils qui font tomber des prods. Cette etape illustre **trois pieges** que vous rencontrerez tot ou tard.
 
-**CSI** est preferable quand vous voulez eviter tout stockage dans etcd OU si vos apps relisent un fichier.
+### 6.1 Le piege du `:latest`
 
-**ESO** est preferable quand vos apps lisent les secrets via env vars et que vous tolerez la presence d'un Secret K8s.
+Par defaut, ESO recupere `versions/latest` du secret GCP. **Pratique en dev, dangereux en prod** : une mauvaise valeur poussee a l'aide de `gcloud secrets versions add` est immediatement deployee sur **tous** les pods qui synchronisent ce secret. Pas de canary, pas de rollback graduel.
+
+> En production, on pin une version specifique (`remoteRef.version: "3"`) et on bump via Pull Request. Voir Bonus 2.
+
+### 6.2 Le piege du `creationPolicy: Owner` (cascade delete)
+
+Avec `creationPolicy: Owner`, ESO pose un `ownerReference` sur le Secret K8s qu'il cree. Consequence : **supprimer l'ExternalSecret supprime aussi le Secret K8s** (garbage collection Kubernetes). Demo rapide dans votre namespace :
+
+```bash
+# 1. Verifiez que le Secret existe
+kubectl get secret api-secrets-<NOM> -n exercices
+
+# 2. Supprimez l'ExternalSecret
+kubectl delete externalsecret api-secrets-<NOM> -n exercices
+
+# 3. Le Secret a disparu, votre pod va CrashLoopBackOff au prochain restart
+kubectl get secret api-secrets-<NOM> -n exercices
+# Error from server (NotFound)
+```
+
+Recreez l'ExternalSecret pour la suite :
+
+```bash
+kubectl apply -f starter/external-secret.yaml
+```
+
+> Cas reel : un `helm uninstall` ou un prune Argo CD efface l'ExternalSecret, donc le Secret, donc casse les pods qui en dependent. Utilisez `creationPolicy: Orphan` si vous voulez decoupler le cycle de vie.
+
+### 6.3 Le piege de l'overwrite
+
+Avec `creationPolicy: Owner`, si vous pointez vers un Secret K8s **deja existant** (par exemple `argocd-secret`), ESO va **forcer la reecriture** et perdre toutes les cles qui n'apparaissent pas dans `spec.data`. Bug documente (issue #4548). Voir Bonus 3 pour une demo controlee.
+
+> Regle d'or : un `ExternalSecret` avec `Owner` doit toujours pointer vers un Secret K8s qu'**il cree lui-meme**, jamais vers un Secret prexistant.
+
+---
+
+## Comparaison CSI vs ESO vs Vault
+
+| Critere | CSI Secrets Store | External Secrets Operator | Vault + Vault Agent |
+|---------|-------------------|---------------------------|----------------------|
+| Stockage K8s | Aucun (fichier monte) | Secret K8s (dans etcd) | Aucun (fichier ou env via sidecar) |
+| Rafraichissement | Fichier mis a jour | Secret K8s mis a jour | Renouvellement de bail (lease) |
+| Consommation pod | Volume mount | envFrom / env | Volume mount ou env via sidecar |
+| Reload du pod | Non (l'app relit le fichier) | Oui si env vars (sauf reloader) | Non (template Vault Agent regenere) |
+| Multi-provider | Oui | Oui | Vault uniquement |
+| **Secrets dynamiques** | Non | Non | **Oui (creation a la demande de credentials DB, AWS, etc.)** |
+| Coute d'exploitation | Bas (DaemonSet) | Bas (controleur) | **Eleve** (HA, unsealing, backups, upgrades) |
+
+Quand choisir quoi :
+
+- **CSI** : quand votre policy de securite interdit tout Secret K8s dans etcd, OU si vos apps relisent un fichier.
+- **ESO** : valeur par defaut pour la plupart des cas. Pattern envFrom natif, compatible avec tous les apps existantes.
+- **Vault** : quand vous avez besoin de **secrets dynamiques** (un mot de passe DB different par pod, valable 1h, automatiquement revoque). Aucun equivalent natif dans GCP Secret Manager. Mais : exploitation lourde (3-5 pods Raft, strategie de sealing/unsealing, KMS qui scelle vos clefs - si la clef KMS est perdue, Vault est mort).
 
 ---
 
