@@ -56,17 +56,17 @@ chmod +x check-terraform.sh
 
 Utilisez les **data sources** pour charger des donnees existantes dans GCP sans les gerer avec Terraform :
 
-1. Creez manuellement un bucket via la console GCP ou gsutil :
+1. Creez manuellement un bucket via la console GCP ou gsutil (le nom doit etre **unique au monde**, ajoutez votre nom) :
 
 ```bash
-gsutil mb -l europe-west9 gs://bonus-data-source-bucket/
+gsutil mb -l europe-west9 gs://bonus-data-source-<VOTRE_NOM>/
 ```
 
 2. Creez un fichier `data_sources.tf` pour referencer ce bucket existant :
 
 ```hcl
 data "google_storage_bucket" "existing" {
-  name = "bonus-data-source-bucket"
+  name = "bonus-data-source-<VOTRE_NOM>"
 }
 
 output "bucket_self_link" {
@@ -80,7 +80,7 @@ output "bucket_self_link" {
 terraform plan
 ```
 
-Remarquez que `data.google_storage_bucket.existing` n'est **pas** dans le state — c'est une reference a une ressource existante.
+Remarquez la difference : Terraform **lit** ce bucket mais ne le **gere pas**. Il apparait bien dans le state (c'est un cache lu a chaque `plan`/`refresh`), mais Terraform ne le creera ni ne le detruira jamais — un `terraform destroy` ne touchera pas a ce bucket.
 
 4. Affichez les attributs du bucket :
 
@@ -92,7 +92,7 @@ terraform state show 'data.google_storage_bucket.existing'
 5. Nettoyez :
 
 ```bash
-gsutil rm -r gs://bonus-data-source-bucket/
+gsutil rm -r gs://bonus-data-source-<VOTRE_NOM>/
 ```
 
 **Question** : Quand utiliseriez-vous une data source plutot que de gerer une ressource directement ? (Ex: infrastructure pre-existante, separation des responsabilites)
@@ -130,12 +130,14 @@ resource "local_file" "bucket_info" {
   content  = <<EOT
 Bucket: ${google_storage_bucket.bonus.name}
 URL: gs://${google_storage_bucket.bonus.name}
-Created: ${google_storage_bucket.bonus.time_created}
+Self link: ${google_storage_bucket.bonus.self_link}
 EOT
 
   depends_on = [google_storage_bucket.bonus]
 }
 ```
+
+> **Note** : la ressource `google_storage_bucket` n'expose **pas** d'attribut `time_created`. Utilisez `self_link`, `url` ou `id`. Verifiez les attributs exportes avec `terraform state show google_storage_bucket.bonus` ou la doc du provider.
 
 3. Ajoutez un `provisioner "local-exec"` pour executer un script apres :
 
@@ -149,9 +151,10 @@ resource "null_resource" "post_create" {
 }
 ```
 
-4. Appliquez et observez :
+4. Les ressources `local_file` et `null_resource` viennent de nouveaux providers (`hashicorp/local` et `hashicorp/null`). Re-initialisez pour les telecharger, puis appliquez :
 
 ```bash
+terraform init   # installe les providers local + null
 terraform apply -var="bucket_name=<VOTRE_NOM>"
 terraform output
 cat bucket_info.txt
@@ -236,26 +239,30 @@ module "my_buckets" {
 
   buckets = [
     {
-      name     = "logs"
+      name     = "logs-<VOTRE_NOM>"
       location = "EU"
       labels = {
         type = "logs"
       }
     },
     {
-      name     = "backups"
+      name     = "backups-<VOTRE_NOM>"
       location = "EU"
       labels = {
         type = "backups"
       }
     },
     {
-      name     = "data"
+      name     = "data-<VOTRE_NOM>"
       location = "US"
     }
   ]
 }
+```
 
+> **Important** : les noms de buckets GCS sont **uniques au monde**. Le module prefixe avec `var.environment` (ex: `training-logs-<VOTRE_NOM>`), mais `training-logs` seul serait deja pris. Gardez un identifiant unique (votre nom) dans chaque nom.
+
+```hcl
 output "all_buckets" {
   value = module.my_buckets.bucket_urls
 }
