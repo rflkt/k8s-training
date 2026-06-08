@@ -20,7 +20,7 @@ module "network" {
 
   network_name = "${var.student_name}-vpc"
   subnet_name  = "${var.student_name}-subnet"
-  subnet_cidr  = "10.10.0.0/24"
+  subnet_cidr  = "10.0.1.0/24"
   region       = var.region
 }
 
@@ -39,10 +39,12 @@ module "cluster" {
 module "node_pool" {
   source = "./modules/node_pool"
 
-  pool_name    = "${var.student_name}-pool"
-  location     = var.zone
-  cluster_id   = module.cluster.cluster_id
-  machine_type = "e2-medium"
-  node_count   = 1
-  spot         = true
+  pool_name      = "${var.student_name}-pool"
+  location       = var.zone
+  cluster_id     = module.cluster.cluster_id
+  machine_type   = "e2-small"
+  node_count     = 1
+  min_node_count = 1
+  max_node_count = 3
+  spot           = true
 }

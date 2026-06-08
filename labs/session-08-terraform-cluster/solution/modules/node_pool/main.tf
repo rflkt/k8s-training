@@ -19,9 +19,26 @@ resource "google_container_node_pool" "pool" {
     workload_metadata_config {
       mode = "GKE_METADATA"
     }
+
+    # Optional taint — only added when taint_key is set (see bonus 1)
+    dynamic "taint" {
+      for_each = var.taint_key != "" ? [1] : []
+      content {
+        key    = var.taint_key
+        value  = var.taint_value
+        effect = var.taint_effect
+      }
+    }
   }
 
   initial_node_count = var.node_count
+
+  # Autoscaling — GKE adds/removes nodes based on demand.
+  # (initial_node_count sets the starting size; node_count cannot be used with autoscaling.)
+  autoscaling {
+    min_node_count = var.min_node_count
+    max_node_count = var.max_node_count
+  }
 
   management {
     auto_repair  = true
