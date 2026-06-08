@@ -1,6 +1,7 @@
 # Session 9 — Terraform Apps & Helm (Solution)
 #
-# Deploy applications to Kubernetes using a reusable Terraform module.
+# Deploy applications to Kubernetes using a reusable Terraform module,
+# and install the Traefik ingress controller via the Helm provider.
 
 terraform {
   required_version = ">= 1.5.0"
@@ -27,12 +28,46 @@ provider "helm" {
   }
 }
 
+# ---------- Variables ----------
+
+variable "namespace" {
+  description = "Namespace to deploy the apps into"
+  type        = string
+  default     = "exercices"
+}
+
+variable "create_namespace" {
+  description = "Create the namespace. true for a self-contained cluster; set false on a shared cluster where the namespace is pre-created and you only have namespaced access."
+  type        = bool
+  default     = true
+}
+
+variable "enable_secret_csi" {
+  description = "Create the SecretProviderClass. Requires the secrets-store CSI driver installed on the cluster (see README) — leave false otherwise, or `terraform plan` fails looking up the CRD."
+  type        = bool
+  default     = false
+}
+
 # ---------- Namespace ----------
 
 resource "kubernetes_namespace" "exercices" {
+  count = var.create_namespace ? 1 : 0
+
   metadata {
-    name = "exercices"
+    name = var.namespace
   }
+}
+
+# ---------- Traefik ingress controller (via Helm) ----------
+# This is the "Helm" half of the session: Terraform drives a Helm release.
+
+resource "helm_release" "traefik" {
+  name             = "traefik"
+  repository       = "https://traefik.github.io/charts"
+  chart            = "traefik"
+  version          = "27.0.0"
+  namespace        = "traefik"
+  create_namespace = true
 }
 
 # ---------- API Deployment ----------
@@ -40,7 +75,7 @@ resource "kubernetes_namespace" "exercices" {
 module "api" {
   source    = "./modules/app"
   app_name  = "api"
-  namespace = kubernetes_namespace.exercices.metadata[0].name
+  namespace = var.namespace
   image     = "europe-west9-docker.pkg.dev/cloud-447406/training/api:v1"
   replicas  = 2
   port      = 8080
@@ -48,6 +83,8 @@ module "api" {
   env_vars = {
     ENVIRONMENT = "training"
   }
+
+  depends_on = [kubernetes_namespace.exercices]
 }
 
 # ---------- Frontend Deployment ----------
@@ -55,7 +92,7 @@ module "api" {
 module "frontend" {
   source         = "./modules/app"
   app_name       = "frontend"
-  namespace      = kubernetes_namespace.exercices.metadata[0].name
+  namespace      = var.namespace
   image          = "europe-west9-docker.pkg.dev/cloud-447406/training/frontend:v1"
   replicas       = 1
   port           = 80
@@ -63,20 +100,27 @@ module "frontend" {
   host           = "frontend.training.local"
 
   env_vars = {
-    API_URL = "http://api.exercices.svc.cluster.local:80"
+    API_URL = "http://api.${var.namespace}.svc.cluster.local:80"
   }
+
+  depends_on = [kubernetes_namespace.exercices, helm_release.traefik]
 }
 
-# ---------- CSI SecretProviderClass ----------
+# ---------- CSI SecretProviderClass (optional) ----------
+# Mounts a GCP Secret Manager secret into pods via the secrets-store CSI driver.
+# Gated by enable_secret_csi: kubernetes_manifest resolves the CRD at PLAN time,
+# so this only works once the secrets-store CSI driver is installed (see README).
 
 resource "kubernetes_manifest" "api_secret_provider" {
+  count = var.enable_secret_csi ? 1 : 0
+
   manifest = {
     apiVersion = "secrets-store.csi.x-k8s.io/v1"
     kind       = "SecretProviderClass"
 
     metadata = {
       name      = "api-secrets"
-      namespace = kubernetes_namespace.exercices.metadata[0].name
+      namespace = var.namespace
     }
 
     spec = {

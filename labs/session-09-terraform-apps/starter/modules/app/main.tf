@@ -21,12 +21,13 @@
 #   - spec.selector = { app = var.app_name }
 #   - spec.port: port = 80, target_port = var.port
 
-# ---------- IngressRoute (optional) ----------
-# TODO: Create a kubernetes_manifest for a Traefik IngressRoute
+# ---------- Ingress (optional) ----------
+# TODO: Create a native kubernetes_ingress_v1 (NOT the Traefik IngressRoute CRD —
+#       a kubernetes_manifest CRD would break `terraform plan` before Traefik exists).
 # Only create this resource if var.enable_ingress is true (use count)
 # Requirements:
-#   - apiVersion: traefik.io/v1alpha1
-#   - kind: IngressRoute
-#   - spec.entryPoints = ["web"]
-#   - spec.routes: match = "Host(`${var.host}`)", kind = "Rule"
-#   - spec.routes.services: name = var.app_name, port = 80
+#   - metadata: name = var.app_name, namespace = var.namespace
+#   - spec.ingress_class_name = "traefik"
+#   - spec.rule.host = var.host
+#   - rule.http.path: path = "/", path_type = "Prefix"
+#   - backend.service: name = var.app_name, port.number = 80

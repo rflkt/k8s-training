@@ -76,36 +76,43 @@ resource "kubernetes_service" "app" {
   }
 }
 
-# ---------- IngressRoute (optional) ----------
+# ---------- Ingress (optional) ----------
+#
+# Native kubernetes_ingress_v1 (built-in API) routed by Traefik via
+# ingress_class_name. We deliberately avoid the Traefik IngressRoute CRD here:
+# kubernetes_manifest looks up the CRD at PLAN time, so it would break
+# `terraform plan` on any cluster where Traefik isn't installed yet. A native
+# Ingress always plans, and Traefik picks it up through its Ingress provider.
 
-resource "kubernetes_manifest" "ingress_route" {
+resource "kubernetes_ingress_v1" "app" {
   count = var.enable_ingress ? 1 : 0
 
-  manifest = {
-    apiVersion = "traefik.io/v1alpha1"
-    kind       = "IngressRoute"
+  metadata {
+    name      = var.app_name
+    namespace = var.namespace
+  }
 
-    metadata = {
-      name      = var.app_name
-      namespace = var.namespace
-    }
+  spec {
+    ingress_class_name = "traefik"
 
-    spec = {
-      entryPoints = ["web"]
+    rule {
+      host = var.host
 
-      routes = [
-        {
-          match = "Host(`${var.host}`)"
-          kind  = "Rule"
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
 
-          services = [
-            {
+          backend {
+            service {
               name = kubernetes_service.app.metadata[0].name
-              port = 80
+              port {
+                number = 80
+              }
             }
-          ]
+          }
         }
-      ]
+      }
     }
   }
 }
