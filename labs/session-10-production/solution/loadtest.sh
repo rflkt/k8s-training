@@ -47,7 +47,7 @@ else
   echo "Press Ctrl+C to stop early."
   echo ""
   echo "In another terminal, run:"
-  echo "  kubectl get hpa -n exercices --watch"
+  echo "  kubectl get hpa -n \$NS --watch   # \$NS = votre namespace trainee-NN"
   echo ""
   wait
 

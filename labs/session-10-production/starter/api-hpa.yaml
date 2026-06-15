@@ -2,7 +2,6 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: api-hpa
-  namespace: exercices
 spec:
   # TODO: Configure the scale target reference
   # scaleTargetRef:

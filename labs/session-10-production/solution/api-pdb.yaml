@@ -2,7 +2,6 @@ apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: api-pdb
-  namespace: exercices
 spec:
   maxUnavailable: 1
   selector:
