@@ -1,0 +1,12 @@
+#!/bin/sh
+# Export the first nameserver from the container's /etc/resolv.conf so the nginx
+# config template can use it as the `resolver` for runtime DNS of the API
+# backend. Works in Docker (embedded DNS at 127.0.0.11) and in Kubernetes
+# (CoreDNS ClusterIP) without hardcoding an environment-specific address.
+#
+# Named *.envsh and placed in /docker-entrypoint.d so the official nginx
+# entrypoint SOURCES it (exporting NAMESERVER) before 20-envsubst-on-templates.sh
+# renders the template.
+NAMESERVER="$(awk '/^nameserver/ { print $2; exit }' /etc/resolv.conf)"
+: "${NAMESERVER:=127.0.0.11}"
+export NAMESERVER

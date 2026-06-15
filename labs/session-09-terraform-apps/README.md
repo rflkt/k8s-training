@@ -87,7 +87,14 @@ module "frontend" {
   port           = 80
   enable_ingress = true
   host           = "frontend.training.local"
-  depends_on     = [kubernetes_namespace.exercices, helm_release.traefik]
+
+  # Le frontend (nginx) proxy /api/ vers le Service api. Comme le Service api
+  # ecoute sur le port 80 dans le cluster, on le lui indique via API_URL.
+  env_vars = {
+    API_URL = "http://api.${var.namespace}.svc.cluster.local:80"
+  }
+
+  depends_on = [kubernetes_namespace.exercices, helm_release.traefik]
 }
 ```
 

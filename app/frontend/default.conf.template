@@ -1,0 +1,37 @@
+server {
+    listen 80;
+    server_name _;
+
+    # Serve static files
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Proxy API requests to the backend.
+    #
+    # This config is rendered from a template at container start (the official
+    # nginx entrypoint runs envsubst over /etc/nginx/templates/*.template):
+    #   - ${NAMESERVER} is injected from the container's /etc/resolv.conf
+    #     (16-set-api-resolver.envsh) so DNS works everywhere: Docker's embedded
+    #     resolver (127.0.0.11) in docker-compose, CoreDNS in Kubernetes.
+    #   - ${API_URL} is the backend address. Default targets docker-compose
+    #     (api:8080); in Kubernetes the api Service listens on :80, so the
+    #     Deployment overrides API_URL accordingly.
+    #
+    # Resolving via a variable + resolver defers DNS to request time, so nginx
+    # starts even if the backend isn't up yet.
+    location /api/ {
+        resolver ${NAMESERVER} valid=10s;
+        set $backend "${API_URL}";
+        rewrite ^/api/(.*) /$1 break;
+        proxy_pass $backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Serve static files, fallback to index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

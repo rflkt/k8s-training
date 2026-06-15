@@ -2,7 +2,7 @@
 
 Formation pratique Kubernetes destinee aux developpeurs backend et fullstack. De la decouverte des concepts fondamentaux jusqu'au deploiement en production avec CI/CD, en passant par Terraform et Helm.
 
-Chaque session de 2h combine theorie (~45 min) et lab pratique (~1h15) sur un cluster local [kind](https://kind.sigs.k8s.io/). Les labs utilisent une application fil rouge composee d'une API Go et d'un frontend React.
+Chaque session de 2h combine theorie (~45 min) et lab pratique (~1h15) sur un cluster local [kind](https://kind.sigs.k8s.io/). Les labs utilisent une application fil rouge composee d'une API Go et d'un frontend statique (HTML/JS) servi par nginx.
 
 ---
 
@@ -99,7 +99,7 @@ k8s-training/
 ├── .gitignore
 ├── app/
 │   ├── api/                           # API Go (application fil rouge)
-│   └── frontend/                      # Frontend React
+│   └── frontend/                      # Frontend statique (HTML/JS + nginx)
 ├── labs/
 │   ├── session-01-fundamentals/
 │   │   ├── starter/                   # Fichiers de depart du lab
@@ -131,8 +131,22 @@ k8s-training/
 
 | | |
 |---|---|
-| **Nom** | _A completer_ |
-| **Email** | _A completer_ |
-| **Slack** | _A completer_ |
+| **Nom** | Hugo Matthaey |
+| **Email** | hugo@reflektlab.ai |
 
 Pour toute question sur le contenu ou les labs, ouvrir une issue sur ce repo ou contacter le formateur directement.
+
+---
+
+## Licence
+
+© 2026 Hugo Matthaey ([Reflekt Lab](https://reflektlab.ai)).
+
+Ce support de formation est publie sous licence
+[Creative Commons Attribution - Pas d'Utilisation Commerciale 4.0 International (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/deed.fr).
+
+Vous etes libres de le **partager**, le **reutiliser** et l'**adapter** (formation interne, etude, etc.),
+a condition d'en **crediter l'auteur** et de **ne pas en faire un usage commercial direct**
+(revente, formation payante donnee par un tiers) sans autorisation ecrite prealable.
+
+Voir [LICENSE](LICENSE) pour le texte complet.
