@@ -1,0 +1,17 @@
+# Session 9 — example variables
+#
+# Copy to terraform.tfvars and adjust.
+
+# ---- Shared training cluster (the class case) ----
+# The trainer provides the cluster, your namespace, and Traefik.
+kubeconfig       = "./training-kubeconfig.yaml" # trainee kubeconfig from `make training-export-kubeconfig`
+namespace        = "trainee-01"                 # YOUR assigned namespace
+create_namespace = false                        # the trainer already created it
+install_traefik  = false                        # the trainer already installed Traefik
+
+# ---- Your own cluster (admin) ----
+# Uncomment these instead if you recreated a cluster as in Session 8.
+# kubeconfig       = "~/.kube/config"
+# namespace        = "exercices"
+# create_namespace = true
+# install_traefik  = true

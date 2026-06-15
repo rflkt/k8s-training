@@ -11,13 +11,31 @@
 ## Pre-requis
 
 - Terraform installe (`terraform version`)
-- Un cluster GKE accessible et `kubectl` configure dessus
-  - soit un **cluster partage** fourni par le formateur,
-  - soit un cluster que vous recreez comme en Session 8 (`terraform apply`).
-- Le namespace est gere par Terraform :
-  - par defaut `create_namespace = true` (Terraform cree le namespace `exercices`),
-  - sur un **cluster partage** ou votre namespace existe deja et ou vous n'avez
-    qu'un acces *namespace*, mettez `create_namespace = false` et renseignez `namespace`.
+- Un acces a un cluster GKE :
+  - **Cluster partage (le cas de la classe)** — fourni par le formateur. Vous
+    recevez un **namespace dedie** (`trainee-NN`) et un **kubeconfig de trainee**.
+    Traefik est **deja installe** par le formateur ; vous n'avez qu'un acces
+    `edit` sur votre namespace (vous ne pouvez pas creer de ressources
+    *cluster-scoped* : namespaces, ClusterRoles, IngressClass, CRDs...).
+  - **Votre propre cluster** — recree comme en Session 8 (`terraform apply`),
+    ou vous etes administrateur.
+
+### Sur le cluster partage (le cas de la classe)
+
+1. Recuperez le kubeconfig de trainee genere par le formateur (cote
+   `cloud-infrastructure` : `make training-export-kubeconfig`). Copiez
+   `training-kubeconfig.yaml` a cote de votre `main.tf`.
+2. Creez `terraform.tfvars` (voir [`terraform.tfvars.example`](solution/terraform.tfvars.example)) :
+
+   ```hcl
+   kubeconfig       = "./training-kubeconfig.yaml"
+   namespace        = "trainee-01"   # VOTRE namespace assigne
+   create_namespace = false          # le formateur l'a deja cree
+   install_traefik  = false          # le formateur a deja installe Traefik
+   ```
+
+> Sur **votre propre cluster** (admin) : `create_namespace = true`,
+> `install_traefik = true`, `kubeconfig = "~/.kube/config"`.
 
 > Le **CSI driver** (`secrets-store`) n'est necessaire que pour l'etape 6 (optionnelle).
 
@@ -53,6 +71,8 @@ partie **Helm** de la session : Terraform pilote un release Helm) :
 
 ```hcl
 resource "helm_release" "traefik" {
+  count = var.install_traefik ? 1 : 0
+
   name             = "traefik"
   repository       = "https://traefik.github.io/charts"
   chart            = "traefik"
@@ -61,6 +81,12 @@ resource "helm_release" "traefik" {
   create_namespace = true
 }
 ```
+
+> **Cluster partage :** laissez `install_traefik = false`. Installer Traefik cree
+> des ressources *cluster-scoped* (namespace, ClusterRole, IngressClass, CRDs) que
+> votre acces `edit` ne permet **pas** — et de toute facon le formateur l'a deja
+> installe une seule fois pour toute la classe. Le `count` ci-dessus rend donc le
+> bloc inactif chez vous. Sur votre propre cluster (admin), mettez `install_traefik = true`.
 
 ## Etape 4 : Deployer l'API
 
@@ -131,13 +157,16 @@ terraform apply
 Verifiez les ressources :
 
 ```bash
-kubectl get deployments -n exercices
-kubectl get services -n exercices
-kubectl get ingress -n exercices
-kubectl get pods -n exercices
+NS=trainee-01   # VOTRE namespace
+kubectl get deployments -n $NS
+kubectl get services -n $NS
+kubectl get ingress -n $NS
+kubectl get pods -n $NS
 ```
 
-Recuperez l'IP publique de Traefik et joignez le frontend :
+Recuperez l'IP publique de Traefik et joignez le frontend. L'Ingress route sur
+`Host=frontend.<namespace>.training.local` (le host inclut votre namespace pour
+eviter les collisions entre stagiaires) :
 
 ```bash
 kubectl get svc traefik -n traefik   # attendez l'EXTERNAL-IP
@@ -145,8 +174,8 @@ kubectl get svc traefik -n traefik   # attendez l'EXTERNAL-IP
 EXTERNAL_IP=$(kubectl get svc traefik -n traefik \
   -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
-# L'Ingress route sur Host=frontend.training.local : on passe l'en-tete Host
-curl -H "Host: frontend.training.local" http://$EXTERNAL_IP/
+# Remplacez trainee-01 par VOTRE namespace
+curl -H "Host: frontend.trainee-01.training.local" http://$EXTERNAL_IP/
 ```
 
 ## Nettoyage

@@ -19,21 +19,33 @@ terraform {
 }
 
 provider "kubernetes" {
-  config_path = "~/.kube/config"
+  config_path = var.kubeconfig
 }
 
 provider "helm" {
   kubernetes {
-    config_path = "~/.kube/config"
+    config_path = var.kubeconfig
   }
 }
 
 # ---------- Variables ----------
 
+variable "kubeconfig" {
+  description = "Path to the kubeconfig used by the kubernetes/helm providers. On the shared cluster, point this at the trainee kubeconfig from `make training-export-kubeconfig` (e.g. ./training-kubeconfig.yaml)."
+  type        = string
+  default     = "~/.kube/config"
+}
+
 variable "namespace" {
-  description = "Namespace to deploy the apps into"
+  description = "Namespace to deploy the apps into. On the shared cluster, use your assigned namespace (e.g. trainee-01)."
   type        = string
   default     = "exercices"
+}
+
+variable "install_traefik" {
+  description = "Install Traefik via Helm. Leave false on the shared cluster — the trainer installs Traefik once (you only have namespaced `edit` rights). Set true only on your own cluster where you are cluster-admin."
+  type        = bool
+  default     = false
 }
 
 variable "create_namespace" {
@@ -60,8 +72,12 @@ resource "kubernetes_namespace" "exercices" {
 
 # ---------- Traefik ingress controller (via Helm) ----------
 # This is the "Helm" half of the session: Terraform drives a Helm release.
+# Gated by install_traefik: on the shared training cluster the trainer installs
+# Traefik once (you only have namespaced `edit`), so leave this false there.
 
 resource "helm_release" "traefik" {
+  count = var.install_traefik ? 1 : 0
+
   name             = "traefik"
   repository       = "https://traefik.github.io/charts"
   chart            = "traefik"
@@ -97,7 +113,9 @@ module "frontend" {
   replicas       = 1
   port           = 80
   enable_ingress = true
-  host           = "frontend.training.local"
+  # Host includes the namespace so concurrent trainees on the shared cluster
+  # don't collide on the same Ingress host (e.g. frontend.trainee-01.training.local).
+  host = "frontend.${var.namespace}.training.local"
 
   env_vars = {
     API_URL = "http://api.${var.namespace}.svc.cluster.local:80"

@@ -19,19 +19,25 @@ terraform {
 }
 
 provider "kubernetes" {
-  config_path = "~/.kube/config"
+  config_path = var.kubeconfig
 }
 
 provider "helm" {
   kubernetes {
-    config_path = "~/.kube/config"
+    config_path = var.kubeconfig
   }
 }
 
 # ---------- Variables ----------
 
+variable "kubeconfig" {
+  description = "Path to the kubeconfig used by the providers. On the shared cluster, point at the trainee kubeconfig from `make training-export-kubeconfig`."
+  type        = string
+  default     = "~/.kube/config"
+}
+
 variable "namespace" {
-  description = "Namespace to deploy the apps into"
+  description = "Namespace to deploy the apps into (e.g. trainee-01 on the shared cluster)"
   type        = string
   default     = "exercices"
 }
@@ -40,6 +46,12 @@ variable "create_namespace" {
   description = "Create the namespace (false on a shared cluster where it already exists)"
   type        = bool
   default     = true
+}
+
+variable "install_traefik" {
+  description = "Install Traefik via Helm. Leave false on the shared cluster (trainer installs it); true only on your own cluster."
+  type        = bool
+  default     = false
 }
 
 variable "enable_secret_csi" {
@@ -60,7 +72,11 @@ resource "kubernetes_namespace" "exercices" {
 
 # ---------- Traefik ingress controller (via Helm) ----------
 # TODO: Add a helm_release resource to install Traefik.
+# On the SHARED cluster the trainer already installed Traefik and you only have
+# namespaced `edit` rights, so gate this with `count = var.install_traefik ? 1 : 0`
+# and leave install_traefik = false. Add it only on your own (admin) cluster.
 # Hints:
+#   count            = var.install_traefik ? 1 : 0
 #   name             = "traefik"
 #   repository       = "https://traefik.github.io/charts"
 #   chart            = "traefik"
@@ -88,7 +104,7 @@ resource "kubernetes_namespace" "exercices" {
 #   image          = "europe-west9-docker.pkg.dev/cloud-447406/training/frontend:v1"
 #   port           = 80
 #   enable_ingress = true
-#   host           = "frontend.training.local"
+#   host           = "frontend.${var.namespace}.training.local"  # unique per trainee
 #   depends_on     = [kubernetes_namespace.exercices, helm_release.traefik]
 
 # ---------- CSI SecretProviderClass (optional) ----------
