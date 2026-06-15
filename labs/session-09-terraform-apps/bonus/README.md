@@ -2,6 +2,12 @@
 
 > Pour ceux qui ont termine le TP principal en avance. Chaque exercice est independant.
 
+> **Cluster partage :** ces exercices prolongent votre `main.tf` du TP. Le HCL
+> utilise `var.namespace` (= votre namespace `trainee-NN`), donc ne mettez pas
+> `"exercices"` en dur. Pour les commandes `kubectl`, definissez d'abord
+> `NS=trainee-01` (votre namespace). Traefik reste fourni par le formateur
+> (`install_traefik = false`).
+
 ---
 
 ## Bonus 1 : Blocs dynamiques pour volumes optionnels (20 min)
@@ -60,7 +66,7 @@ spec {
 module "api" {
   source              = "./modules/app"
   app_name            = "api"
-  namespace           = "exercices"
+  namespace           = var.namespace
   image               = "europe-west9-docker.pkg.dev/cloud-447406/training/api:v1"
   enable_cache_volume = true
   cache_mount_path    = "/tmp/cache"
@@ -71,13 +77,13 @@ module "api" {
 
 ```bash
 terraform apply
-kubectl get deployment -n exercices api -o yaml | grep -A 10 "volumeMounts\|volumes"
+kubectl get deployment -n $NS api -o yaml | grep -A 10 "volumeMounts\|volumes"
 ```
 
 5. Verifiez que le cache est accessible :
 
 ```bash
-kubectl exec -n exercices deploy/api -- ls -la /tmp/cache
+kubectl exec -n $NS deploy/api -- ls -la /tmp/cache
 ```
 
 6. Testez sans le cache (modifiez `enable_cache_volume = false`) et observez le changement de plan :
@@ -141,7 +147,7 @@ module "app" {
 
   source         = "./modules/app"
   app_name       = each.key
-  namespace      = "exercices"
+  namespace      = var.namespace
   image          = each.value.image
   port           = each.value.port
   enable_ingress = each.value.enable_ingress
@@ -156,7 +162,7 @@ output "deployed_apps" {
   value = {
     for name, app in module.app :
     name => {
-      service_name = "${name}.exercices.svc.cluster.local"
+      service_name = "${name}.${var.namespace}.svc.cluster.local"
     }
   }
 }
@@ -171,7 +177,7 @@ terraform apply -var-file=apps.tfvars
 6. Verifiez les deployments :
 
 ```bash
-kubectl get deployments -n exercices
+kubectl get deployments -n $NS
 terraform output deployed_apps
 ```
 
@@ -199,6 +205,11 @@ terraform apply -var-file=apps.tfvars
 ## Bonus 3 : Exploration des workspaces Terraform (15 min)
 
 Utilisez les **workspaces** pour gerer plusieurs environnements (dev, staging, prod) avec le meme code :
+
+> **Cluster partage :** restez en `terraform plan` (comme dans les etapes ci-dessous).
+> Ne faites pas `apply` ici : les namespaces par workspace (`exercices-dev`, etc.)
+> creeraient des ressources en dehors de votre namespace `trainee-NN`. L'objectif
+> est de comprendre le mecanisme des workspaces, pas de deployer.
 
 1. Listez les workspaces existants (par defaut, il y a `default`) :
 
@@ -315,7 +326,7 @@ api_key           = "sk-1234567890abcdef"
 resource "kubernetes_config_map" "secrets_env" {
   metadata {
     name      = "api-secrets-env"
-    namespace = "exercices"
+    namespace = var.namespace
   }
 
   data = {
@@ -364,7 +375,7 @@ terraform output  # Les champs marques "sensitive" ne montrent pas leur valeur
 7. Verifiez dans Kubernetes (attention : ils sont encore lisibles dans etcd !) :
 
 ```bash
-kubectl get configmap -n exercices api-secrets-env -o yaml
+kubectl get configmap -n $NS api-secrets-env -o yaml
 ```
 
 8. (Optionnel) Utilisez une vraie gestion de secrets via GCP Secret Manager :
