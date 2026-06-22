@@ -42,9 +42,19 @@ export NS=trainee-01   # remplacez par VOTRE namespace
   la policy est **creee mais NON appliquee** : le test "bloque" ne bloquera pas
   vraiment (voir etape 6).
 
-## Etapes
+## Etapes (TP : 1h30)
 
-### 1. Ajouter les probes
+| # | Etape | Duree |
+|---|-------|-------|
+| 1 | Probes (liveness/readiness/startup) | 15 min |
+| 2 | Requests & limits | 10 min |
+| 3 | HorizontalPodAutoscaler | 10 min |
+| 4 | Charge + observer le scaling | 15 min |
+| 5 | PodDisruptionBudget | 10 min |
+| 6 | NetworkPolicy | 20 min |
+| — | Mini-defi VPA | 10 min |
+
+### 1. Ajouter les probes (15 min)
 
 Ouvrez `starter/api-deployment-probes.yaml`. Completez les TODOs pour ajouter :
 
@@ -58,7 +68,7 @@ kubectl apply -f api-deployment-probes.yaml -n $NS
 kubectl describe pod -n $NS -l app=api | grep -A 5 "Liveness\|Readiness\|Startup"
 ```
 
-### 2. Definir les ressources
+### 2. Definir les ressources (10 min)
 
 Dans le meme fichier, completez les sections `resources` :
 - **requests** : ce que le pod demande au minimum (CPU: 100m, memoire: 128Mi)
@@ -68,7 +78,7 @@ Dans le meme fichier, completez les sections `resources` :
 kubectl top pods -n $NS
 ```
 
-### 3. Configurer le HPA
+### 3. Configurer le HPA (10 min)
 
 Ouvrez `starter/api-hpa.yaml`. Configurez un HPA qui :
 - Cible le Deployment `api`
@@ -80,7 +90,7 @@ kubectl apply -f api-hpa.yaml -n $NS
 kubectl get hpa -n $NS
 ```
 
-### 4. Generer de la charge et observer le scaling
+### 4. Generer de la charge et observer le scaling (15 min)
 
 Lancez le script de test de charge :
 ```bash
@@ -95,7 +105,7 @@ kubectl get hpa -n $NS --watch
 
 Vous devriez voir le nombre de replicas augmenter progressivement.
 
-### 5. Ajouter un PodDisruptionBudget
+### 5. Ajouter un PodDisruptionBudget (10 min)
 
 Ouvrez `starter/api-pdb.yaml`. Le PDB garantit qu'au maximum 1 pod est indisponible lors d'operations de maintenance (drain, mise a jour du cluster).
 
@@ -104,7 +114,7 @@ kubectl apply -f api-pdb.yaml -n $NS
 kubectl get pdb -n $NS
 ```
 
-### 6. Ajouter une NetworkPolicy
+### 6. Ajouter une NetworkPolicy (20 min)
 
 Ouvrez `starter/network-policy.yaml`. La NetworkPolicy doit :
 - S'appliquer aux pods avec le label `app: api`
@@ -145,7 +155,7 @@ kubectl port-forward svc/monitoring-grafana -n monitoring 3000:80
 # Login: admin / prom-operator
 ```
 
-## Mini-defi
+## Mini-defi (10 min)
 
 Creez un **VerticalPodAutoscaler** (VPA) en mode `Off` (recommandation uniquement) pour l'API. Apres quelques minutes de charge, consultez les recommandations :
 

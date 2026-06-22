@@ -12,9 +12,13 @@ export NS=trainee-01   # remplacez par VOTRE namespace
 ```
 
 Certains bonus creent des objets **cluster-scoped** ou sont **destructifs sur un
-cluster partage** : ils sont marques **"cluster perso uniquement"** et ne doivent
-**pas** etre executes tels quels sur le cluster de formation. Les bonus namespaces
-(1 et 3) fonctionnent sous l'acces `edit` de votre namespace.
+cluster partage** : ils sont marques **"cluster perso uniquement"**. Ce n'est pas
+qu'une consigne : sur le cluster de formation votre SA n'a que `roles/container.viewer`
+(GCP, lecture seule) + le role `edit` **namespace** — donc creer un namespace, un
+ResourceQuota, ou drainer un node **retourne `Forbidden`** (reserve au formateur).
+Les bonus namespaces (1 et 3) fonctionnent, eux, sous votre acces `edit`. Le
+`kubectl drain --dry-run=client` (Bonus 4) reste possible car il est simule
+**cote client** (il n'appelle pas l'API pour evincer).
 
 ---
 
