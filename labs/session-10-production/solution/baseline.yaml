@@ -1,0 +1,46 @@
+# Base Session 9 pour la Session 10.
+# Appliquez ce fichier si votre deploiement Session 9 (api + frontend) n'est
+# plus actif dans votre namespace. Il fournit le Service `api` (ClusterIP, port
+# 80 -> conteneur 8080) et un pod `frontend` — tous deux requis par l'etape 4
+# (charge via le Service api) et l'etape 6 (test NetworkPolicy depuis frontend).
+#
+#   kubectl apply -f baseline.yaml -n $NS
+#
+# L'etape 1 (api-deployment-probes.yaml) cree/ met a jour le Deployment `api`
+# (label app=api) que ce Service selectionne.
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  labels:
+    app: api
+spec:
+  type: ClusterIP
+  selector:
+    app: api
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: europe-west9-docker.pkg.dev/cloud-447406/training/frontend:v1
+          ports:
+            - containerPort: 80

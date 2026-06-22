@@ -54,6 +54,17 @@ export NS=trainee-01   # remplacez par VOTRE namespace
 | 6 | NetworkPolicy | 20 min |
 | — | Mini-défi VPA | 10 min |
 
+### 0. Préparation — base Session 9
+
+Ce TP suppose que l'`api` et le `frontend` de la Session 9 tournent dans votre
+namespace. Si ce n'est plus le cas, appliquez la base fournie — elle crée le
+**Service `api`** (requis dès l'étape 4 pour générer la charge) et un pod
+**`frontend`** (requis à l'étape 6 pour le test NetworkPolicy) :
+
+```bash
+kubectl apply -f baseline.yaml -n $NS
+```
+
 ### 1. Ajouter les probes (15 min)
 
 Ouvrez `starter/api-deployment-probes.yaml`. Complétez les TODOs pour ajouter :
@@ -92,10 +103,14 @@ kubectl get hpa -n $NS
 
 ### 4. Générer de la charge et observer le scaling (15 min)
 
-Lancez le script de test de charge :
+Le `api` est un Service **ClusterIP** : on génère la charge **depuis l'intérieur
+du cluster** (un `kubectl port-forward` depuis votre poste ferait goulot
+d'étranglement sur le tunnel et n'atteindrait pas 70 % de CPU). Lancez plusieurs
+pods qui martèlent le Service `api` :
+
 ```bash
-chmod +x starter/loadtest.sh
-./starter/loadtest.sh
+kubectl create deploy loadgen -n $NS --image=curlimages/curl --replicas=5 -- \
+  sh -c 'while true; do for i in $(seq 1 30); do curl -s -o /dev/null http://api/health & done; wait; done'
 ```
 
 Dans un autre terminal, observez le HPA en temps réel :
@@ -103,7 +118,16 @@ Dans un autre terminal, observez le HPA en temps réel :
 kubectl get hpa -n $NS --watch
 ```
 
-Vous devriez voir le nombre de replicas augmenter progressivement.
+Vous verrez le CPU monter au-dessus de 70 % et les replicas passer de 2 à 5
+(scale-up rapide ; le scale-down a une fenêtre de stabilisation d'environ 5 min).
+Une fois la démonstration faite, arrêtez la charge :
+
+```bash
+kubectl delete deploy loadgen -n $NS
+```
+
+> Sur **votre propre cluster**, vous pouvez aussi utiliser le script
+> `starter/loadtest.sh` (avec `hey`) après un `kubectl port-forward svc/api -n $NS 8080:80`.
 
 ### 5. Ajouter un PodDisruptionBudget (10 min)
 
@@ -143,6 +167,13 @@ kubectl run test-curl --rm -it --image=curlimages/curl -n $NS -- curl -s --max-t
 > Le test "bloqué" ne bloque réellement que sur un cluster avec Dataplane V2.
 
 ## Bonus
+
+> **Cluster perso uniquement.** `kube-prometheus-stack` installe des **CRDs**,
+> des **ClusterRoles** et un namespace — ressources *cluster-scoped* que votre
+> accès `edit` (+ `container.viewer`) **ne permet pas** sur le cluster de
+> formation (vous obtiendrez `Forbidden`). À faire sur votre propre cluster
+> (kind / minikube / GKE perso), ou demandez au formateur de l'installer une fois
+> pour la classe.
 
 Installez Prometheus et Grafana avec Helm pour visualiser les métriques :
 
