@@ -1,10 +1,10 @@
 # Session 9 — Exercices Bonus
 
-> Pour ceux qui ont termine le TP principal en avance. Chaque exercice est independant.
+> Pour ceux qui ont terminé le TP principal en avance. Chaque exercice est indépendant.
 
-> **Cluster partage :** ces exercices prolongent votre `main.tf` du TP. Le HCL
+> **Cluster partagé :** ces exercices prolongent votre `main.tf` du TP. Le HCL
 > utilise `var.namespace` (= votre namespace `trainee-NN`), donc ne mettez pas
-> `"exercices"` en dur. Pour les commandes `kubectl`, definissez d'abord
+> `"exercices"` en dur. Pour les commandes `kubectl`, définissez d'abord
 > `NS=trainee-01` (votre namespace). Traefik reste fourni par le formateur
 > (`install_traefik = false`).
 
@@ -12,7 +12,7 @@
 
 ## Bonus 1 : Blocs dynamiques pour volumes optionnels (20 min)
 
-Utilisez les **blocs dynamiques** pour creer des volumes conditionnels dans votre module applicatif :
+Utilisez les **blocs dynamiques** pour créer des volumes conditionnels dans votre module applicatif :
 
 1. Modifiez le module `modules/app/variables.tf` pour ajouter une variable optionnelle :
 
@@ -97,9 +97,9 @@ terraform plan
 
 ---
 
-## Bonus 2 : for_each pour deploiements multi-applications (20 min)
+## Bonus 2 : for_each pour déploiements multi-applications (20 min)
 
-Utilisez **for_each** pour deployer plusieurs applications avec un seul appel de module :
+Utilisez **for_each** pour déployer plusieurs applications avec un seul appel de module :
 
 1. Creez un fichier `apps.tfvars` contenant la configuration de plusieurs apps :
 
@@ -204,12 +204,12 @@ terraform apply -var-file=apps.tfvars
 
 ## Bonus 3 : Exploration des workspaces Terraform (15 min)
 
-Utilisez les **workspaces** pour gerer plusieurs environnements (dev, staging, prod) avec le meme code :
+Utilisez les **workspaces** pour gérer plusieurs environnements (dev, staging, prod) avec le même code :
 
-> **Cluster partage :** restez en `terraform plan` (comme dans les etapes ci-dessous).
+> **Cluster partagé :** restez en `terraform plan` (comme dans les étapes ci-dessous).
 > Ne faites pas `apply` ici : les namespaces par workspace (`exercices-dev`, etc.)
-> creeraient des ressources en dehors de votre namespace `trainee-NN`. L'objectif
-> est de comprendre le mecanisme des workspaces, pas de deployer.
+> créeraient des ressources en dehors de votre namespace `trainee-NN`. L'objectif
+> est de comprendre le mécanisme des workspaces, pas de déployer.
 
 1. Listez les workspaces existants (par defaut, il y a `default`) :
 
@@ -288,13 +288,13 @@ terraform workspace delete prod
 terraform workspace list
 ```
 
-**Question** : Quels sont les avantages et inconvenients des workspaces par rapport a des repertoires separes ? Quand utiliseriez-vous l'un ou l'autre ?
+**Question** : Quels sont les avantages et inconvénients des workspaces par rapport à des répertoires séparés ? Quand utiliseriez-vous l'un ou l'autre ?
 
 ---
 
 ## Bonus 4 : Secrets et variables sensibles (15 min)
 
-Gerez les **secrets** de facon secure en Terraform sans les exposer en plaintext :
+Gérez les **secrets** de façon sécurisée en Terraform sans les exposer en plaintext :
 
 1. Modifiez votre `variables.tf` pour ajouter des variables sensibles :
 

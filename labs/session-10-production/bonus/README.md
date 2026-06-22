@@ -1,6 +1,6 @@
 # Session 10 — Exercices Bonus
 
-> Pour ceux qui ont termine le TP principal en avance. Chaque exercice est independant.
+> Pour ceux qui ont terminé le TP principal en avance. Chaque exercice est indépendant.
 
 **Cluster partage :** vous travaillez dans votre namespace `trainee-NN` avec un
 acces `edit`. Ne mettez pas `"exercices"` en dur. Pour les commandes `kubectl`,
@@ -11,20 +11,20 @@ par votre namespace dans les manifests.
 export NS=trainee-01   # remplacez par VOTRE namespace
 ```
 
-Certains bonus creent des objets **cluster-scoped** ou sont **destructifs sur un
-cluster partage** : ils sont marques **"cluster perso uniquement"**. Ce n'est pas
+Certains bonus créent des objets **cluster-scoped** ou sont **destructifs sur un
+cluster partagé** : ils sont marqués **"cluster perso uniquement"**. Ce n'est pas
 qu'une consigne : sur le cluster de formation votre SA n'a que `roles/container.viewer`
-(GCP, lecture seule) + le role `edit` **namespace** — donc creer un namespace, un
-ResourceQuota, ou drainer un node **retourne `Forbidden`** (reserve au formateur).
-Les bonus namespaces (1 et 3) fonctionnent, eux, sous votre acces `edit`. Le
-`kubectl drain --dry-run=client` (Bonus 4) reste possible car il est simule
-**cote client** (il n'appelle pas l'API pour evincer).
+(GCP, lecture seule) + le rôle `edit` **namespace** — donc créer un namespace, un
+ResourceQuota, ou drainer un node **retourne `Forbidden`** (réservé au formateur).
+Les bonus namespaces (1 et 3) fonctionnent, eux, sous votre accès `edit`. Le
+`kubectl drain --dry-run=client` (Bonus 4) reste possible car il est simulé
+**côté client** (il n'appelle pas l'API pour évincer).
 
 ---
 
-## Bonus 1 : HPA avec metriques memoire personnalisees (20 min)
+## Bonus 1 : HPA avec métriques mémoire personnalisées (20 min)
 
-Configurez un **HorizontalPodAutoscaler** basé sur l'utilisation de la memoire au lieu du CPU :
+Configurez un **HorizontalPodAutoscaler** basé sur l'utilisation de la mémoire au lieu du CPU :
 
 1. Creez un fichier `api-hpa-memory.yaml` :
 
@@ -74,7 +74,7 @@ kubectl apply -f api-hpa-memory.yaml -n $NS
 kubectl get hpa -n $NS api-hpa-memory --watch
 ```
 
-4. Generez de la charge **memoire** avec un script custom :
+4. Générez de la charge **mémoire** avec un script custom :
 
 ```bash
 # Pod de test qui alloue progressivement de la memoire
@@ -94,19 +94,19 @@ pkill -f "load-memory"
 
 6. Comparez avec l'HPA basé CPU. Quel est plus reactif ? Lequel est plus adapte a votre application ?
 
-**Question** : Pourquoi certaines applications scaling mieux sur CPU et d'autres sur memoire ? Comment choisiriez-vous la metrique appropriee ?
+**Question** : Pourquoi certaines applications scaling mieux sur CPU et d'autres sur mémoire ? Comment choisiriez-vous la métrique appropriée ?
 
 ---
 
 ## Bonus 2 : ResourceQuota et LimitRange par namespace (15 min)
 
-> **Cluster perso uniquement.** Cet exercice **cree un namespace** et des
-> **ResourceQuota / LimitRange**. Sur le cluster de formation, votre acces `edit`
-> **ne permet pas** de creer des namespaces ni des ResourceQuota/LimitRange (ce
+> **Cluster perso uniquement.** Cet exercice **crée un namespace** et des
+> **ResourceQuota / LimitRange**. Sur le cluster de formation, votre accès `edit`
+> **ne permet pas** de créer des namespaces ni des ResourceQuota/LimitRange (ce
 > sont des actions du formateur). Faites-le sur votre propre cluster (kind / minikube
-> / GKE perso), ou demandez au formateur de pre-creer le namespace et le quota.
+> / GKE perso), ou demandez au formateur de pré-créer le namespace et le quota.
 
-Protegez les ressources du cluster en definissant des **quotas et limites par namespace** :
+Protégez les ressources du cluster en définissant des **quotas et limites par namespace** :
 
 1. Creez un fichier `namespace-resources.yaml` :
 
@@ -211,13 +211,13 @@ kubectl run test-limits -n exercices-limited \
 kubectl describe pod test-limits -n exercices-limited | grep -A 5 "Limits\|Requests"
 ```
 
-**Question** : Comment les ResourceQuotas et LimitRanges vous aident-ils a eviter les surcharges du cluster ? Quand commenceriez-vous a utiliser les deux ensemble ?
+**Question** : Comment les ResourceQuotas et LimitRanges vous aident-ils à éviter les surcharges du cluster ? Quand commenceriez-vous à utiliser les deux ensemble ?
 
 ---
 
 ## Bonus 3 : Simulation de panne - Liveness probe failure (20 min)
 
-Testez le comportement de Kubernetes quand un **liveness probe echoue** :
+Testez le comportement de Kubernetes quand un **liveness probe échoue** :
 
 1. Deployez une version modifiee de l'API qui peut se mettre en "erreur" :
 
@@ -309,20 +309,20 @@ kubectl patch deployment api-probe-test -n $NS \
   -p '{"spec":{"template":{"spec":{"containers":[{"name":"api","livenessProbe":{"httpGet":{"port":8080}}}]}}}}'
 ```
 
-**Question** : Comment les probes differentes (liveness, readiness, startup) changent-elles le comportement ? Quand faut-il les utiliser ensemble ? Que se passe-t-il si le liveness threshold est trop bas ?
+**Question** : Comment les probes différentes (liveness, readiness, startup) changent-elles le comportement ? Quand faut-il les utiliser ensemble ? Que se passe-t-il si le liveness threshold est trop bas ?
 
 ---
 
 ## Bonus 4 : PDB avec disruptions planifiees (15 min)
 
-> **Cluster perso uniquement — NE PAS executer sur le cluster de formation
-> partage.** Un `kubectl drain` sur un node est **destructif et global** : il
-> evince les pods de **tous** les trainees, pas seulement les votres. De plus,
-> votre acces `edit` **ne permet pas** de drainer un node (operation
-> cluster-admin). Sur le cluster partage, **limitez-vous au `--dry-run=client`**
-> (etape 5) pour voir ce qui serait evince, **sans rien executer reellement**.
-> Le drain reel (etapes 6, 8, 10) est reserve a votre propre cluster avec un
-> acces cluster-admin.
+> **Cluster perso uniquement — NE PAS exécuter sur le cluster de formation
+> partagé.** Un `kubectl drain` sur un node est **destructif et global** : il
+> évince les pods de **tous** les trainees, pas seulement les vôtres. De plus,
+> votre accès `edit` **ne permet pas** de drainer un node (opération
+> cluster-admin). Sur le cluster partagé, **limitez-vous au `--dry-run=client`**
+> (étape 5) pour voir ce qui serait évincé, **sans rien exécuter réellement**.
+> Le drain réel (étapes 6, 8, 10) est réservé à votre propre cluster avec un
+> accès cluster-admin.
 
 Testez le **PodDisruptionBudget** en simulant un drain de node :
 
@@ -390,9 +390,9 @@ echo "Node cible (dry-run): $NODE"
 kubectl drain $NODE --ignore-daemonsets --dry-run=client
 ```
 
-> **STOP — cluster partage.** Les etapes 6 a 10 effectuent un drain **reel**.
-> Sur le cluster de formation, **ne les executez PAS** : un drain reel necessite
-> un acces **cluster-admin** et **affecte tous les trainees**. Continuez
+> **STOP — cluster partagé.** Les étapes 6 à 10 effectuent un drain **réel**.
+> Sur le cluster de formation, **ne les exécutez PAS** : un drain réel nécessite
+> un accès **cluster-admin** et **affecte tous les trainees**. Continuez
 > uniquement sur **votre propre cluster** (kind / minikube / GKE perso).
 
 6. (Cluster perso) Voyez ce qui se passe si vous tentez vraiment de drainer :
