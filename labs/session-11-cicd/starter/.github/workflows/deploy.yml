@@ -1,7 +1,11 @@
-# CI/CD Pipeline for k8s-training API
+# CI/CD Pipeline for the k8s-training API
 #
-# This workflow builds the API Docker image, pushes it to Google Artifact
-# Registry, and deploys to GKE.
+# Builds the API image, pushes it to Google Artifact Registry, and deploys it to
+# the SHARED training cluster — into YOUR trainee namespace.
+#
+# Auth uses Workload Identity Federation (no long-lived key). Set two repo
+# secrets in your fork (GCP_WORKLOAD_IDENTITY_PROVIDER, GCP_SERVICE_ACCOUNT,
+# given by the trainer — same for everyone) and your own NAMESPACE below.
 
 name: Deploy API
 
@@ -17,7 +21,8 @@ env:
   REGISTRY: europe-west9-docker.pkg.dev/cloud-447406/training
   IMAGE_NAME: api
   GKE_CLUSTER: training-cluster
-  NAMESPACE: exercices
+  GKE_LOCATION: europe-west9-b   # zonal cluster — NOT the region
+  NAMESPACE: trainee-01          # <-- CHANGE to YOUR assigned namespace
 
 jobs:
   build-and-deploy:
@@ -38,25 +43,30 @@ jobs:
       #   workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       #   service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
+      # TODO: Set up the Cloud SDK
+      # Use: google-github-actions/setup-gcloud@v2
+
       # TODO: Configure Docker to authenticate with Artifact Registry
       # Run: gcloud auth configure-docker europe-west9-docker.pkg.dev --quiet
 
-      # TODO: Build the Docker image using the multi-stage Dockerfile
-      # Run: docker build -t $REGISTRY/$IMAGE_NAME:${{ github.sha }} \
+      # TODO: Build the Docker image using the multi-stage Dockerfile.
+      # The shared "training" repo is used by the whole class, so prefix the tag
+      # with $NAMESPACE to keep your images separate from the others'.
+      # Run: docker build -t $REGISTRY/$IMAGE_NAME:$NAMESPACE-${{ github.sha }} \
       #        -f app/api/Dockerfile.multistage app/api/
 
       # TODO: Push the Docker image to Artifact Registry
-      # Run: docker push $REGISTRY/$IMAGE_NAME:${{ github.sha }}
+      # Run: docker push $REGISTRY/$IMAGE_NAME:$NAMESPACE-${{ github.sha }}
 
-      # TODO: Get GKE cluster credentials
+      # TODO: Get GKE cluster credentials (zonal cluster!)
       # Use: google-github-actions/get-gke-credentials@v2
       # Parameters:
-      #   cluster_name: training-cluster
-      #   location: europe-west9
+      #   cluster_name: ${{ env.GKE_CLUSTER }}
+      #   location: ${{ env.GKE_LOCATION }}
 
-      # TODO: Deploy to GKE by updating the container image
+      # TODO: Deploy to GKE by updating the container image — in YOUR namespace
       # Run: kubectl set image deployment/api \
-      #        api=$REGISTRY/$IMAGE_NAME:${{ github.sha }} \
+      #        api=$REGISTRY/$IMAGE_NAME:$NAMESPACE-${{ github.sha }} \
       #        -n $NAMESPACE
 
       # TODO: Wait for rollout to complete
