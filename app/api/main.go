@@ -31,10 +31,20 @@ func main() {
 
 	// Connect to Postgres if DATABASE_URL is set
 	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
-		var err error
-		db, err = sql.Open("postgres", dbURL)
-		if err != nil {
-			log.Fatalf("Failed to open database connection: %v", err)
+		userFile, passwordFile := os.Getenv("DB_USER_FILE"), os.Getenv("DB_PASSWORD_FILE")
+		if userFile != "" && passwordFile != "" {
+			// Credentials come from files that can change under us (session 12).
+			db = sql.OpenDB(fileCredentialConnector{baseURL: dbURL, userFile: userFile, passwordFile: passwordFile})
+			// Recycle connections so a rotated password is picked up even when
+			// the pool never has to grow.
+			db.SetConnMaxLifetime(time.Minute)
+			log.Println("Database credentials read from files")
+		} else {
+			var err error
+			db, err = sql.Open("postgres", dbURL)
+			if err != nil {
+				log.Fatalf("Failed to open database connection: %v", err)
+			}
 		}
 		defer db.Close()
 
@@ -67,6 +77,7 @@ func main() {
 	mux.HandleFunc("/items", handleItems)
 	mux.HandleFunc("/items/", handleItemByID)
 	mux.HandleFunc("/secret-test", handleSecretTest)
+	mux.HandleFunc("/db-identity", handleDBIdentity)
 
 	handler := loggingMiddleware(mux)
 
@@ -101,7 +112,20 @@ func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 }
 
 // createTable ensures the items table exists.
+//
+// CREATE TABLE IF NOT EXISTS is not safe when two replicas start at once:
+// both see no table and the second fails on a duplicate key. A transaction-
+// scoped advisory lock makes them take turns.
 func createTable() error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec("SELECT pg_advisory_xact_lock(42)"); err != nil {
+		return err
+	}
 	query := `
 		CREATE TABLE IF NOT EXISTS items (
 			id SERIAL PRIMARY KEY,
@@ -109,8 +133,10 @@ func createTable() error {
 			created_at TIMESTAMP DEFAULT NOW()
 		);
 	`
-	_, err := db.Exec(query)
-	return err
+	if _, err := tx.Exec(query); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // --- Handlers ---
@@ -220,6 +246,24 @@ func handleSecretTest(w http.ResponseWriter, r *http.Request) {
 			"path":          path,
 		})
 	}
+}
+
+// handleDBIdentity reports which Postgres role the API is connected as, so a
+// Vault-issued or rotated login can be seen from outside the pod.
+func handleDBIdentity(w http.ResponseWriter, r *http.Request) {
+	if db == nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "no database configured"})
+		return
+	}
+	var sessionUser, currentRole string
+	if err := db.QueryRow("SELECT session_user, current_user").Scan(&sessionUser, &currentRole); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{
+		"session_user": sessionUser,
+		"current_user": currentRole,
+	})
 }
 
 // --- Item CRUD ---

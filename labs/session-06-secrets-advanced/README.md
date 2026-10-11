@@ -128,6 +128,8 @@ echo
 
 Pour eviter ce probleme en production : utiliser CSI Secrets Store (rotation des fichiers automatique), un sidecar `reloader` (annotation `reloader.stakater.com/auto: "true"` sur le Deployment, qui redemarre les pods quand le Secret change), ou Vault Agent Injector.
 
+> **Pour aller plus loin** : le [module complementaire Vault](../session-12-vault/) remplace Secret Manager par Vault, genere les identifiants PostgreSQL et fait tourner leur mot de passe, et montre la fenetre d'erreur qu'une rotation ouvre dans une app qui ne relit pas ses fichiers.
+
 ---
 
 ## Etape 6 : Pieges de production a connaitre
