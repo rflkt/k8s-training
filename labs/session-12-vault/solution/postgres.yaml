@@ -1,0 +1,79 @@
+# PostgreSQL du lab, avec les trois roles dont Vault a besoin.
+#
+#   app_owner   NOLOGIN. Possede les tables. Personne ne se connecte avec.
+#   api_app     LOGIN. Le compte de l'API. Vault fera tourner son mot de passe
+#               (static role). Il agit en tant que app_owner.
+#   vault_admin LOGIN, CREATEROLE. Le compte avec lequel Vault se connecte
+#               (la "rotation root"). Vault fera aussi tourner SON mot de passe.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+  namespace: exercices
+data:
+  01-roles.sql: |
+    CREATE ROLE app_owner NOLOGIN;
+    GRANT ALL ON SCHEMA public TO app_owner;
+
+    -- Le login de l'API. Ce mot de passe initial ne servira jamais :
+    -- Vault le remplace des que le static role est cree.
+    CREATE ROLE api_app WITH LOGIN PASSWORD 'initial-password-replaced-by-vault' IN ROLE app_owner;
+    -- Tout ce que l'API cree appartient a app_owner, pas a api_app.
+    ALTER ROLE api_app SET role = 'app_owner';
+
+    -- Le compte de Vault. Depuis PostgreSQL 16, CREATEROLE ne suffit plus :
+    -- il faut l'option ADMIN sur chaque role que Vault doit gerer.
+    CREATE ROLE vault_admin WITH LOGIN CREATEROLE PASSWORD 'bootstrap-password-rotated-by-vault';
+    GRANT app_owner TO vault_admin WITH ADMIN OPTION;
+    GRANT api_app TO vault_admin WITH ADMIN OPTION;
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: exercices
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          env:
+            - name: POSTGRES_DB
+              value: app
+            - name: POSTGRES_USER
+              value: postgres
+            # Superutilisateur du lab uniquement (pas de volume, pas de prod).
+            - name: POSTGRES_PASSWORD
+              value: lab-superuser
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres", "-d", "app"]
+            periodSeconds: 5
+      volumes:
+        - name: init
+          configMap:
+            name: postgres-init
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: exercices
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432

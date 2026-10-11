@@ -1,0 +1,21 @@
+# Vault pour le lab : mode dev, un seul pod, stockage en memoire.
+# NE JAMAIS utiliser le mode dev en production (voir le README, section
+# "Ce qui change en production") : tout est perdu au redemarrage du pod
+# et le token root vaut "root".
+server:
+  dev:
+    enabled: true
+    devRootToken: "root"
+  # Le chart lie le ServiceAccount de Vault a system:auth-delegator :
+  # c'est ce qui permet a Vault de valider les tokens des pods (TokenReview).
+  authDelegator:
+    enabled: true
+
+# L'injecteur (sidecar Vault Agent) n'est pas utilise dans ce lab :
+# on passe par le CSI driver, comme en session 5.
+injector:
+  enabled: false
+
+# Le provider CSI Vault : le pont entre le CSI driver et Vault.
+csi:
+  enabled: true

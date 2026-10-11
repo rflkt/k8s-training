@@ -48,12 +48,12 @@ terraform destroy
 ## Architecture
 
 ### Application (`app/`)
-- **`api/`** - Go 1.22 REST API (port 8080). Single `main.go` with CRUD endpoints (`/items`), health/readiness probes (`/health`, `/ready`), info endpoint (`/info`), and secret test endpoint (`/secret-test`). Version is injected at build time via `-ldflags`. Connects to PostgreSQL with automatic retry logic.
+- **`api/`** - Go 1.22 REST API (port 8080). `main.go` plus `dbcreds.go` (file-based credential connector) with CRUD endpoints (`/items`), health/readiness probes (`/health`, `/ready`), info endpoint (`/info`), secret test endpoint (`/secret-test`) and `/db-identity` (the Postgres session_user/current_user, used in session 12). Version is injected at build time via `-ldflags`. Connects to PostgreSQL with automatic retry logic.
 - **`frontend/`** - Static HTML/JS served by nginx:1.25-alpine (port 80). nginx proxies `/api/` requests to the backend. Auto-refreshes API status every 5s to demonstrate pod rotation.
 - **`docker-compose.yml`** - 3-service stack: api, frontend, postgres (16-alpine).
 
 ### Labs (`labs/`)
-Each session has `starter/` (incomplete YAMLs with TODOs) and `solution/` (working manifests). Sessions 1-6 cover K8s concepts (pods, services, ingress, storage, secrets), 7-9 cover Terraform (intro, GKE cluster, app deployment), 10 covers production patterns (HPA, probes, resource limits), 11 covers CI/CD (GitHub Actions deploying to GKE).
+Each session has `starter/` (incomplete YAMLs with TODOs) and `solution/` (working manifests). Sessions 1-6 cover K8s concepts (pods, services, ingress, storage, secrets), 7-9 cover Terraform (intro, GKE cluster, app deployment), 10 covers production patterns (HPA, probes, resource limits), 11 covers CI/CD (GitHub Actions deploying to GKE). Session 12 is an optional 2h add-on outside the 22h (Vault on kind: Kubernetes auth, Vault CSI provider, PostgreSQL dynamic and static roles, password rotation); it uses the `api:vault` image and the API's `DB_USER_FILE` / `DB_PASSWORD_FILE` mode, which re-reads credentials on every new connection.
 
 ### Terraform (`terraform/student-template/`)
 Multi-module GKE provisioning: `modules/network/` (VPC, subnet, Cloud NAT), `modules/cluster/` (GKE control plane), `modules/node_pool/` (e2-small spot VMs with autoscaling). Resources are prefixed with student name variable.

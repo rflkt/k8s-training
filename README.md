@@ -22,6 +22,12 @@ Chaque session de 2h combine theorie (~45 min) et lab pratique (~1h15) sur un cl
 | 10 | Production | Health checks, resource limits, HPA, rolling updates, observabilite | [lab](labs/session-10-production/) |
 | 11 | CI/CD | GitHub Actions, build/push images, deploy on push, environments | [lab](labs/session-11-cicd/) |
 
+**Module complementaire (2h, optionnel, apres les sessions 5 et 6) :**
+
+| # | Module | Sujets | Lab |
+|---|--------|--------|-----|
+| 12 | Vault | Kubernetes auth, politiques par app, CSI provider Vault, identifiants PostgreSQL dynamiques, rotation de mot de passe (static roles), pieges de migration | [lab](labs/session-12-vault/) |
+
 ---
 
 ## Prerequis
@@ -108,9 +114,10 @@ k8s-training/
 │   │   ├── starter/
 │   │   └── solution/
 │   ├── ...                            # Sessions 03 a 10
-│   └── session-11-cicd/
-│       ├── starter/
-│       └── solution/
+│   ├── session-11-cicd/
+│   │   ├── starter/
+│   │   └── solution/
+│   └── session-12-vault/              # Module complementaire Vault
 ├── setup/
 │   ├── prerequisites.sh               # Script d'installation des outils
 │   ├── verify-setup.sh                # Verification de l'environnement
